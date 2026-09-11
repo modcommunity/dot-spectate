@@ -13,8 +13,8 @@ extends DotConfig
 
 ## 0 anybody, 1 own team only, 2 nobody.
 ##
-## Source's [code]mp_forcecamera[/code], and the numbering is deliberately Source's
-## because server operators type it from memory. "Own team only" also forces first
+## [code]mp_forcecamera[/code], and the numbering is deliberately the one server
+## operators already type from memory. "Own team only" also forces first
 ## person, because a chase camera behind a team-mate sees round corners they cannot.
 @export_enum("all", "team", "none") var force_camera: int = 1
 
@@ -63,9 +63,9 @@ extends DotConfig
 ##
 ## [b]This is the anti-stream-sniping setting and it is the reason this addon keeps a
 ## history at all.[/b] A spectator watching live is a live intelligence feed: a player
-## on a second machine, a streamer's chat, a teammate who died first. SourceTV's answer
-## is ninety seconds and a competitive server's is a few; either way the camera samples
-## a tick in the past and the whole rest of the addon does not have to know.
+## on a second machine, a streamer's chat, a teammate who died first. A broadcast relay's
+## answer is ninety seconds and a competitive server's is a few; either way the camera
+## samples a tick in the past and the whole rest of the addon does not have to know.
 ##
 ## Zero is live, which is what a suite and a single-player replay want.
 @export_range(0, 100000, 1) var delay_ticks: int = 0

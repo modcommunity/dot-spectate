@@ -62,7 +62,7 @@ explanation reports it as a broken control.
 
 ### 3. The delay is why there is a history at all
 
-A spectator watching live is a live intelligence feed. SourceTV's answer is ninety seconds
+A spectator watching live is a live intelligence feed. A broadcast relay's answer is ninety seconds
 and a competitive server's is a few; either way the camera samples a tick in the past and
 nothing else in the addon has to know that it did.
 

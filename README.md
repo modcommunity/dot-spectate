@@ -17,7 +17,7 @@ The camera is four lines of vector arithmetic. Everything else exists because so
 
 Two features answer that, and both live on the server:
 
-- **A force-camera policy.** `all`, `own team only`, or `nobody` — `mp_forcecamera`, with the numbering operators already type from memory. "Own team only" also forces first person, because a chase camera behind a team-mate sees round corners that team-mate cannot.
+- **A force-camera policy.** `all`, `own team only`, or `nobody`, spelled `mp_forcecamera`, with the numbering operators already type from memory. "Own team only" also forces first person, because a chase camera behind a team-mate sees round corners that team-mate cannot.
 - **A delay.** The camera samples a tick in the past, so a spectator is not a live intelligence feed. Ninety seconds is the usual broadcast default; a competitive server's is a few.
 
 ## It computes a transform and touches no camera
@@ -35,7 +35,7 @@ which is what lets one manager serve a 3D shooter's `Camera3D`, a 2D arena's `Ca
 spectate.on_death("ada", where_they_fell, "bob", tick)
 ```
 
-Death cam on the body, freeze cam on the killer, then a real target. Three timers that hand over to each other — and the last hand-over is the one every game that writes it itself gets wrong, leaving the player looking at their killer until they respawn.
+Death cam on the body, freeze cam on the killer, then a real target. Three timers that hand over to each other, and the last hand-over is the one every game that writes it itself gets wrong, leaving the player looking at their killer until they respawn.
 
 ## Using it
 

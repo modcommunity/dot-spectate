@@ -6,7 +6,7 @@ extends RefCounted
 ## [b]This exists for one reason: a spectator watching live is an intelligence feed.[/b]
 ## A player on a second machine, a streamer's chat, a team-mate who died first — all of
 ## them see what the living cannot, and the answer every competitive game reached is the
-## same one: delay the feed. SourceTV's default is ninety seconds; a competitive server's
+## same one: delay the feed. A broadcast relay's default is ninety seconds; a competitive server's
 ## is a few. Either way the camera samples a tick in the past and nothing else in the
 ## addon has to know that it did.
 ##
