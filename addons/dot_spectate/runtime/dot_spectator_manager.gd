@@ -330,6 +330,18 @@ func on_death(
 	v.death_position = where
 	v.killer = by
 
+	if not authoritative:
+		# Refused, and loudly. A mirror's [method advance] runs no timers, so a chain
+		# started here would be a death camera that never hands over — the player sits on
+		# it until they respawn, which is the exact failure this chain exists to prevent.
+		# A mirror is TOLD its view: [method apply_wire], which carries the death
+		# position. The place and the killer are kept, since they are true either way.
+		push_error(
+			"DotSpectatorManager.on_death on a mirror: the chain is the server's. "
+			+ "Send the view with to_wire/apply_wire, or make this manager authoritative."
+		)
+		return
+
 	if rules.forbids_everything():
 		v.mode = DotSpectatorView.Mode.FIXED
 		v.until_tick = -1
@@ -418,11 +430,21 @@ func _retarget(v: DotSpectatorView, reason: StringName) -> void:
 
 func advance(tick: int) -> void:
 	_tick = tick
-	if not authoritative:
-		return
 
+	# Recorded on a mirror too, and before the mirror returns. The camera is computed on
+	# the machine that draws it, from the poses that machine has, and with a delay
+	# [method _pose_of] samples this ring and nothing else — so a mirror that recorded
+	# nothing drew every followed camera at identity the moment a server turned the delay
+	# on. What the mirror records is the delay's DISPLAY; its integrity is still the
+	# server's, because a client that is sent live positions has them whatever its camera
+	# shows. A server that means the delay withholds those positions from a spectator.
 	if rules.delay_ticks > 0:
 		history.record(tick, _poses())
+
+	if not authoritative:
+		# A mirror is told its view (see [method apply_wire]); the chain and the
+		# retargeting are the server's decisions, so nothing below runs here.
+		return
 
 	for id: Variant in _views.keys():
 		var v: DotSpectatorView = _views[id]

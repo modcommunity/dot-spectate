@@ -11,9 +11,13 @@ extends Node
 ## [codeblock]
 ## godot --headless --path . res://examples/spectate_selftest.tscn
 ## [/codeblock]
+##
+## [b]One engine error on every green run, on purpose:[/b] "DotSpectatorManager.on_death on
+## a mirror". The last section asserts that a mirror REFUSES to start the death chain, and
+## the refusal is a [code]push_error[/code] because it is a wiring mistake.
 
 const SECTIONS := 9
-const CHECKS := 71
+const CHECKS := 76
 
 const RATE := 64
 
@@ -33,6 +37,7 @@ func _ready() -> void:
 
 func _run() -> void:
 	_line("dot-spectate self-test")
+	_line("(one engine error on purpose: \"on_death on a mirror\", which the last section asserts is refused)")
 	_line("")
 
 	_test_rules()
@@ -514,9 +519,9 @@ func _test_delay_and_wire() -> void:
 	var seen := m.camera_of("ada").origin.x
 	_check(
 		is_equal_approx(seen, 29.0),
-		"and the camera shows where they were thirty ticks ago (%.0f), not where they "
+		("and the camera shows where they were thirty ticks ago (%.0f), not where they "
 		+ "are now (59) — which is the whole reason a spectator is not a live "
-		+ "intelligence feed" % seen
+		+ "intelligence feed") % seen
 	)
 
 	# The mirror.
@@ -539,8 +544,72 @@ func _test_delay_and_wire() -> void:
 	mirror.advance(9999)
 	_check(
 		mirror.history.size() == before,
-		"and records no history of its own, because the delay is the server's decision"
+		"and a mirror with no delay records no history, because nothing samples it"
 	)
+
+	# The death camera, through the wire. Its place is the one thing in a view that is not
+	# a player the mirror already draws, and a wire without it drew every death camera on
+	# every client from the world origin.
+	_world({"ada": 1, "bob": 2})
+	var server := _manager()
+	server.rules.death_cam_ticks = 64
+	var _ss := server.setup()
+	server.on_death("ada", Vector3(40, 0, -12), "bob", 0)
+	var client := _manager()
+	client.authoritative = false
+	var _cs := client.setup()
+	client.apply_wire(server.to_wire("ada"))
+	_check(
+		client.view("ada").death_position == Vector3(40, 0, -12),
+		"a death camera's place travels to a client (it had %s)"
+			% client.view("ada").death_position
+	)
+	var eye := client.camera_of("ada").origin
+	_check(
+		is_equal_approx(eye.x, 40.0) and is_equal_approx(eye.z, -12.0),
+		"and the mirror draws it where they fell, not at the origin (%s)" % eye
+	)
+	var old_wire := server.to_wire("ada")
+	(old_wire["v"] as Dictionary).erase("d")
+	client.apply_wire(old_wire)
+	_check(
+		client.view("ada").death_position == Vector3(40, 0, -12),
+		"and a view from an older build, with no place in it, keeps the one it had"
+	)
+
+	# A chain started on a mirror is a death camera nothing ends, because a mirror's
+	# advance runs no timers. Refused rather than started — the error it pushes on
+	# purpose is named in the suite's header.
+	client.on_death("bob", Vector3(1, 0, 1), "ada", 0)
+	client.advance(10000)
+	_check(
+		not client.is_spectating("bob"),
+		"a mirror refuses to start the death chain itself, rather than holding it for ever"
+	)
+
+	# The delay, on a mirror. The camera is computed where it is drawn, and with a delay it
+	# samples only the history — so a mirror that recorded none drew every followed camera
+	# at identity the moment the server turned the delay on.
+	_world({"ada": 1, "bob": 1})
+	_alive["ada"] = false
+	var delayed := _manager()
+	delayed.authoritative = false
+	delayed.rules.delay_ticks = 10
+	var _ds := delayed.setup()
+	delayed.apply_wire({"k": "ada", "v": {"m": int(DotSpectatorView.Mode.FIRST_PERSON), "t": "bob"}})
+	for t in range(0, 30):
+		_poses["bob"] = Transform3D(Basis.IDENTITY, Vector3(float(t), 0, 0))
+		delayed.advance(t)
+	var shown := delayed.camera_of("ada").origin.x
+	_check(
+		is_equal_approx(shown, 19.0),
+		"and a delayed mirror shows the past too, from a history of its own (%.0f; live is 29)"
+			% shown
+	)
+
+	server.queue_free()
+	client.queue_free()
+	delayed.queue_free()
 
 	var lines := m.describe_lines()
 	_check(lines.size() > 1, "and it describes itself")

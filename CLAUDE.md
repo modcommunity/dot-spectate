@@ -94,6 +94,14 @@ The replacement target is chosen from `participants_fn`, so a game that reports 
 departure *before* removing the player picks the player who just left. Documented at the
 method, because it is the kind of ordering nobody guesses right twice.
 
+### 7. A mirror is told, records its own history, and refuses to start the chain
+
+A client's manager is a mirror (`authoritative = false`): the server sends each view with `to_wire` and the client `apply_wire`s it and computes the camera from the players it already draws. Three rules follow, each from a game that hit the opposite:
+
+- **The wire carries the death position** (`"d"`). The death camera is the one mode whose place is not a player the mirror is drawing, and without it every client drew every death camera from the world origin. Two games carried it in their own events rather than wait (smash-copter's `SPECTATE`, buses' `adopt`); both keep their compact formats. A view from an older build with no `"d"` keeps the place the mirror had.
+- **A mirror records the history when there is a delay.** With `delay_ticks > 0`, `camera_of` samples the ring and nothing else, and a mirror whose `advance` returned before recording drew every followed camera at identity the moment a server turned the delay on. The ring on a mirror is the delay's *display*. Its integrity is still the server's: a client sent live positions has them whatever its camera shows, so a server that means the delay withholds them from a spectator.
+- **`on_death` on a mirror is refused with a `push_error`.** A mirror's `advance` runs no timers, so a chain started there is a death camera that never hands over — the failure decision 4 exists to prevent, one layer up. It is a wiring mistake, so it is the programmer's error rather than a log line. A game whose server sends no views at all (game-arena's client) runs its client manager *authoritative over its own camera* instead, from the kill events it already receives.
+
 ## The bug found by running it
 
 **Auto-retargeting moved every player off their own killer on the tick after they died.**
@@ -116,7 +124,7 @@ godot --headless --path . --import
 find . -name '*.gd' -not -path './.godot/*' | while read f; do
     godot --headless --path . --check-only --script "res://${f#./}"
 done
-godot --headless --path . res://examples/spectate_selftest.tscn   # 71 checks
+godot --headless --path . res://examples/spectate_selftest.tscn   # 76 checks; one push_error on purpose (on_death on a mirror)
 ```
 
 ## Things deliberately not here

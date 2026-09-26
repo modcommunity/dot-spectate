@@ -76,6 +76,10 @@ func to_wire() -> Dictionary:
 		"i": fixed_index,
 		"u": until_tick,
 		"k": killer,
+		# Where they fell. Without it a mirror draws every death camera from the world
+		# origin, because the death camera is the one mode whose place is not a player
+		# the mirror is already drawing.
+		"d": death_position,
 	}
 
 
@@ -86,6 +90,11 @@ func apply_wire(w: Dictionary) -> void:
 	fixed_index = int(w.get("i", fixed_index))
 	until_tick = int(w.get("u", until_tick))
 	killer = str(w.get("k", killer))
+	# Absent from a view sent by an older build, and then the mirror keeps what it had
+	# rather than moving the camera to the origin.
+	var d: Variant = w.get("d", death_position)
+	if d is Vector3:
+		death_position = d
 
 
 func _to_string() -> String:
