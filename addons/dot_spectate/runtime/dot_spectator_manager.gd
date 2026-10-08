@@ -245,7 +245,7 @@ func _permitted_mode(mode: int) -> int:
 	if rules.forbids_everything():
 		return DotSpectatorView.Mode.FIXED
 	if rules.forces_first_person():
-		# Source's rule: "own team only" also means first person, because a chase
+		# The genre's rule: "own team only" also means first person, because a chase
 		# camera behind a team-mate sees round corners that team-mate cannot.
 		if mode == DotSpectatorView.Mode.CHASE \
 				or mode == DotSpectatorView.Mode.ROAMING:

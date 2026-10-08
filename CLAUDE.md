@@ -47,7 +47,7 @@ deployment shapes, no second code path.
 
 ## Decisions
 
-### 1. Source's seven modes, and Source's numbering
+### 1. The genre's seven modes, and its numbering
 
 `NONE`, `DEATH_CAM`, `FREEZE_CAM`, `FIXED`, `FIRST_PERSON`, `CHASE`, `ROAMING`. Kept
 because twenty years of tooling, demo formats and server documentation says exactly this,
@@ -55,7 +55,7 @@ and an operator typing `mp_forcecamera 1` from memory should get what they expec
 
 ### 2. "Own team only" also means first person
 
-Source's rule and its reasoning: a chase camera behind a team-mate sees round corners that
+The genre's rule and its reasoning: a chase camera behind a team-mate sees round corners that
 team-mate cannot. `_permitted_mode()` downgrades a request rather than refusing it, and
 says so in the log — a player who pressed a key and got a different camera with no
 explanation reports it as a broken control.

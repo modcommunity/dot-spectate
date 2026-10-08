@@ -3,8 +3,8 @@ extends RefCounted
 
 ## One viewer, and what they are looking at.
 ##
-## [b]A mode and a target, and the camera falls out of the two.[/b] Source's observer
-## modes are exactly this list and the numbering is kept because it is what twenty years
+## [b]A mode and a target, and the camera falls out of the two.[/b] The round-based
+## shooters' observer modes are exactly this list and the numbering is kept because it is what twenty years
 ## of tooling, demos and server documentation says.
 
 enum Mode {
