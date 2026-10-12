@@ -83,8 +83,17 @@ var camera_mask: int = 1
 ## their body was, so clear of the level, from which the camera is pulled in.
 const DEATH_PIVOT_HEIGHT := 1.0
 
+## How far back from the body, and how high, the death camera stands when the killer is
+## behind the level from where it would look ([method _killer_hidden]).
+const DEATH_BACK_DISTANCE := 2.5
+const DEATH_BACK_HEIGHT := 1.8
+
 var _views: Dictionary = {}
 var _probes: Dictionary = {}
+## Per viewer: the death the camera last framed and whether its killer was hidden then.
+## Decided once a death, so a killer walking in and out of a doorway does not cut the
+## camera between two places for the whole of the death cam.
+var _death_framing: Dictionary = {}
 var _tick: int = 0
 
 
@@ -136,6 +145,7 @@ func viewers() -> PackedStringArray:
 func forget(key: String) -> void:
 	_views.erase(key)
 	_probes.erase(key)
+	_death_framing.erase(key)
 
 
 ## Whether a viewer is allowed to watch anybody at all, and why not when they are not.
@@ -540,7 +550,19 @@ func camera_of(key: String) -> Transform3D:
 				var killer_pose := _pose_of(v.killer)
 				if killer_pose[1]:
 					at = (killer_pose[0] as Transform3D).origin
-			look = _clear_of_level(key, v.death_position + Vector3.UP * DEATH_PIVOT_HEIGHT, look)
+			var pivot := v.death_position + Vector3.UP * DEATH_PIVOT_HEIGHT
+			look = _clear_of_level(key, pivot, look)
+			if v.killer != "" and _killer_hidden(key, v.death_position, look, at):
+				# [b]A killer behind a wall is a frame of the wall.[/b] Pulled clear of the
+				# level, the camera still looked at somebody through it, and a death against
+				# a wall read as a camera inside one (the play test's teal frame). So when
+				# the wall is between them, the camera stands back from the body on the open
+				# side, away from the killer, and looks at the body instead.
+				var away := v.death_position - at
+				away.y = 0.0
+				away = away.normalized() if away.length_squared() > 0.0001 else Vector3.BACK
+				var back := _clear_of_level(key, pivot, v.death_position + away * DEATH_BACK_DISTANCE + Vector3.UP * DEATH_BACK_HEIGHT)
+				return _looking_from(back, v.death_position + Vector3.UP * 0.5)
 			return _looking_from(look, at)
 
 		DotSpectatorView.Mode.FIRST_PERSON, DotSpectatorView.Mode.FREEZE_CAM:
@@ -560,6 +582,24 @@ func camera_of(key: String) -> Transform3D:
 
 		_:
 			return Transform3D.IDENTITY
+
+
+## Whether the level stands between the death camera at [param from] and the killer at
+## [param killer]; false without a [member camera_world]. Decided on the first frame of a
+## death and kept for it ([member _death_framing]).
+func _killer_hidden(key: String, death: Vector3, from: Vector3, killer: Vector3) -> bool:
+	if camera_world == null:
+		return false
+	var framed: Array = _death_framing.get(key, [])
+	if framed.size() == 2 and (framed[0] as Vector3).is_equal_approx(death):
+		return bool(framed[1])
+	var hidden := false
+	var space := camera_world.direct_space_state
+	if space != null and from.distance_squared_to(killer) > 0.01:
+		var ray := PhysicsRayQueryParameters3D.create(from, killer, camera_mask)
+		hidden = not space.intersect_ray(ray).is_empty()
+	_death_framing[key] = [death, hidden]
+	return hidden
 
 
 ## [param wanted] pulled toward [param pivot] until it is clear of the level, when there

@@ -17,7 +17,7 @@ extends Node
 ## the refusal is a [code]push_error[/code] because it is a wiring mistake.
 
 const SECTIONS := 10
-const CHECKS := 82
+const CHECKS := 85
 
 const RATE := 64
 
@@ -535,6 +535,21 @@ func _test_cameras_in_a_level() -> void:
 	var death := m.camera_of("cy")
 	_check(death.origin.y < 1.6 and not DotCameraProbe.is_inside(space, death.origin, 0.15, 1), "with one it is under the roof, clear of it (y %.2f)" % death.origin.y)
 	_check((-death.basis.z).dot((Vector3(10, 2, 0) - death.origin).normalized()) > 0.99, "and still looking at the killer")
+
+	# Killed through a gap by somebody the wall now hides: looking at them would be a frame
+	# of the wall. The camera stands back on the open side and looks at the body.
+	m.on_death("cy", Vector3(10, 0, 4), "bob", 0)
+	m.camera_world = null
+	var blind := m.camera_of("cy")
+	var into_wall := space.intersect_ray(PhysicsRayQueryParameters3D.create(blind.origin, Vector3(10, 2, 0), 1))
+	_check(not into_wall.is_empty(), "armed: with no level the death camera looks at the killer through the wall")
+	m.camera_world = get_viewport().world_3d
+	var back := m.camera_of("cy")
+	var to_body := (Vector3(10, 0.5, 4) - back.origin).normalized()
+	_check(back.origin.z > 4.5 and not DotCameraProbe.is_inside(space, back.origin, 0.15, 1),
+		"with one, the killer behind the wall, it stands back from the body on the open side (z %.2f)" % back.origin.z)
+	_check((-back.basis.z).dot(to_body) > 0.99 and space.intersect_ray(PhysicsRayQueryParameters3D.create(back.origin, Vector3(10, 0.5, 4), 1)).is_empty(),
+		"and looks at the body, with nothing in the way")
 
 	var _again := m.camera_of("ada")
 	_check(m._probes.size() == 2, "one probe per viewer, so two viewers do not ease each other")
