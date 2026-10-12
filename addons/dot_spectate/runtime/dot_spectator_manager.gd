@@ -24,6 +24,13 @@ extends Node
 ## replay viewer has neither. [method camera_of] returns a [Transform3D];
 ## [method camera_2d_of] returns a position and an angle for a game on the XZ plane.
 ##
+## [b]It does read the level, when asked to.[/b] With [member camera_world] set, the two
+## modes whose camera is somewhere nobody stands (behind a target, above a body) are pulled
+## in front of whatever is between them and their pivot, through dot-core's
+## [DotCameraProbe]: one per viewer, so two viewers asked for in one frame do not ease each
+## other's cameras. Without it the death camera of somebody killed against a wall was a
+## frame of that wall (the first play test, 2026-10-11).
+##
 ## [b]The interesting half is not the camera.[/b] Almost everything here exists because
 ## somebody used a spectator view to cheat, and the two features that matter are the
 ## force-camera policy and the delay.
@@ -65,7 +72,19 @@ var target_filter: Callable = Callable()
 
 var history: DotSpectatorHistory = null
 
+## The level a chase or death camera must stay out of. Null: transforms are returned as
+## computed, through walls and all (a headless server, a 2D game).
+var camera_world: World3D = null
+
+## Layers the chase and death cameras stop against: the level, not the players.
+var camera_mask: int = 1
+
+## Metres above where somebody fell that the death camera's pivot is: a point inside where
+## their body was, so clear of the level, from which the camera is pulled in.
+const DEATH_PIVOT_HEIGHT := 1.0
+
 var _views: Dictionary = {}
+var _probes: Dictionary = {}
 var _tick: int = 0
 
 
@@ -116,6 +135,7 @@ func viewers() -> PackedStringArray:
 
 func forget(key: String) -> void:
 	_views.erase(key)
+	_probes.erase(key)
 
 
 ## Whether a viewer is allowed to watch anybody at all, and why not when they are not.
@@ -520,6 +540,7 @@ func camera_of(key: String) -> Transform3D:
 				var killer_pose := _pose_of(v.killer)
 				if killer_pose[1]:
 					at = (killer_pose[0] as Transform3D).origin
+			look = _clear_of_level(key, v.death_position + Vector3.UP * DEATH_PIVOT_HEIGHT, look)
 			return _looking_from(look, at)
 
 		DotSpectatorView.Mode.FIRST_PERSON, DotSpectatorView.Mode.FREEZE_CAM:
@@ -535,10 +556,24 @@ func camera_of(key: String) -> Transform3D:
 			var pose := chase[0] as Transform3D
 			var back := pose.basis.z.normalized() * rules.chase_distance
 			var up := Vector3.UP * rules.chase_height
-			return Transform3D(pose.basis, pose.origin + back + up)
+			return Transform3D(pose.basis, _clear_of_level(key, pose.origin, pose.origin + back + up))
 
 		_:
 			return Transform3D.IDENTITY
+
+
+## [param wanted] pulled toward [param pivot] until it is clear of the level, when there
+## is a [member camera_world]; [param wanted] itself otherwise.
+func _clear_of_level(key: String, pivot: Vector3, wanted: Vector3) -> Vector3:
+	if camera_world == null:
+		return wanted
+	var probe: DotCameraProbe = _probes.get(key, null)
+	if probe == null:
+		probe = DotCameraProbe.new(camera_world, camera_mask)
+		_probes[key] = probe
+	probe.world = camera_world
+	probe.collision_mask = camera_mask
+	return probe.clip_view(pivot, Transform3D(Basis.IDENTITY, wanted)).origin
 
 
 ## The same answer for a game on the XZ plane: a position and a facing angle.
@@ -614,6 +649,7 @@ func describe() -> Dictionary:
 		"viewers": viewers().size(),
 		"delay": rules.delay_ticks if rules != null else 0,
 		"history": history.size() if history != null else 0,
+		"clipped": camera_world != null,
 		"tick": _tick,
 	}
 

@@ -16,8 +16,8 @@ extends Node
 ## a mirror". The last section asserts that a mirror REFUSES to start the death chain, and
 ## the refusal is a [code]push_error[/code] because it is a wiring mistake.
 
-const SECTIONS := 9
-const CHECKS := 76
+const SECTIONS := 10
+const CHECKS := 82
 
 const RATE := 64
 
@@ -32,7 +32,7 @@ var _poses: Dictionary = {}
 
 func _ready() -> void:
 	DotLog.set_level(DotLog.Level.ERROR)
-	_run()
+	await _run()
 
 
 func _run() -> void:
@@ -48,6 +48,7 @@ func _run() -> void:
 	_test_death_chain()
 	_test_retargeting()
 	_test_cameras()
+	await _test_cameras_in_a_level()
 	_test_delay_and_wire()
 
 	_line("")
@@ -497,6 +498,62 @@ func _test_cameras() -> void:
 	)
 
 	m.queue_free()
+
+
+## The one section with a level: a wall behind the watched player and a low roof over a
+## body. Both checks are armed by asking the same question with no level first.
+func _test_cameras_in_a_level() -> void:
+	_section("chase and death cameras stay out of the level")
+
+	_world({"ada": 1, "bob": 1, "cy": 1})
+	_alive["ada"] = false
+	_alive["cy"] = false
+	_poses["bob"] = Transform3D(Basis.IDENTITY, Vector3(10, 2, 0))
+	var m := _manager()
+	m.rules.force_camera = 0
+	var _s := m.setup()
+
+	var wall := _box(Vector3(10, 2, 2.2), Vector3(10, 6, 0.4))
+	var roof := _box(Vector3(30, 1.8, 0), Vector3(6, 0.4, 6))
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	var space := get_viewport().world_3d.direct_space_state
+
+	var _c := m.watch("ada", "bob", DotSpectatorView.Mode.CHASE)
+	var through := m.camera_of("ada").origin
+	_check(through.z > 2.0, "armed: with no level the chase camera is behind the wall (z %.2f)" % through.z)
+
+	m.camera_world = get_viewport().world_3d
+	var chase := m.camera_of("ada").origin
+	_check(chase.z < 2.0 - 0.15 and not DotCameraProbe.is_inside(space, chase, 0.15, 1), "with one it is in front of the wall, clear of it (z %.2f)" % chase.z)
+
+	m.on_death("cy", Vector3(30, 0, 0), "bob", 0)
+	m.camera_world = null
+	var raw := m.camera_of("cy").origin
+	_check(DotCameraProbe.is_inside(space, raw, 0.15, 1), "armed: with no level the death camera is inside the roof (y %.2f)" % raw.y)
+	m.camera_world = get_viewport().world_3d
+	var death := m.camera_of("cy")
+	_check(death.origin.y < 1.6 and not DotCameraProbe.is_inside(space, death.origin, 0.15, 1), "with one it is under the roof, clear of it (y %.2f)" % death.origin.y)
+	_check((-death.basis.z).dot((Vector3(10, 2, 0) - death.origin).normalized()) > 0.99, "and still looking at the killer")
+
+	var _again := m.camera_of("ada")
+	_check(m._probes.size() == 2, "one probe per viewer, so two viewers do not ease each other")
+
+	wall.queue_free()
+	roof.queue_free()
+	m.queue_free()
+
+
+func _box(at: Vector3, size: Vector3) -> StaticBody3D:
+	var body := StaticBody3D.new()
+	var shape := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = size
+	shape.shape = box
+	body.add_child(shape)
+	body.position = at
+	add_child(body)
+	return body
 
 
 func _test_delay_and_wire() -> void:

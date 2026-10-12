@@ -50,9 +50,13 @@ A client's manager is a mirror (`authoritative = false`): the server sends each 
 - **A mirror records the history when there is a delay.** With `delay_ticks > 0`, `camera_of` samples the ring and nothing else, and a mirror whose `advance` returned before recording drew every followed camera at identity the moment a server turned the delay on. The ring on a mirror is the delay's display. Its integrity is still the server's: a client sent live positions has them whatever its camera shows, so a server that means the delay withholds them from a spectator.
 - **`on_death` on a mirror is refused with a `push_error`.** A mirror's `advance` runs no timers, so a chain started there is a death camera that never hands over. It is a wiring mistake, so it is the programmer's error rather than a log line. A game whose server sends no views at all (game-arena's client) runs its client manager authoritative over its own camera instead, from the kill events it already receives.
 
+## Chase and death cameras stay out of the level
+
+The rule above (a transform, never a camera) stays, but two modes put the camera where nobody stands: behind a target and above a body. Computed blind, the first play test (2026-10-11) had a death camera that was a frame of a teal wall. With `camera_world` set, `camera_of` pulls those two toward a pivot until they are clear of `camera_mask`, through dot-core's `DotCameraProbe`: the chase camera toward the target's eye, the death camera toward `DEATH_PIVOT_HEIGHT` (1 m) above where they fell, then re-aimed at the killer. One probe per viewer, kept until `forget`, so two viewers asked for in one frame do not ease each other's cameras. The probe's easing is collision only (in quickly ahead of a wall, out slowly); it is not the smoothing ruled out below. Unset, the transform is exactly what it was, which is what a server or a 2D game wants.
+
 ## Deliberately not here
 
-- **No camera node, no smoothing, no field-of-view.** A game's rig owns those, and a spectator camera that lerps is a spectator camera fighting the game's own lerp.
+- **No camera node, no smoothing, no field-of-view.** (The probe above eases only to stay out of a wall.) A game's rig owns those, and a spectator camera that lerps is a spectator camera fighting the game's own lerp.
 - **No free-camera controls.** `move_free()` takes a position and a basis; what the keys are is `DotFpsSampler`'s business, or the game's.
 - **No demo recording.** dot-timer already has a replay format and a recorder; a second one here would be a second format.
 - **No overview map or player list.** dot-ui, and the list comes from `targets_for()`.
