@@ -83,6 +83,8 @@ func _world(names: Dictionary) -> void:
 
 func _manager() -> DotSpectatorManager:
 	var m := DotSpectatorManager.new()
+	# The policy tests assume a competitive server; the default is now unrestricted.
+	m.rules.force_camera = 1
 	m.participants_fn = func() -> PackedStringArray:
 		var out := PackedStringArray()
 		var ids: Array = _teams.keys()
@@ -105,24 +107,48 @@ func _test_rules() -> void:
 
 	var rules := DotSpectatorRules.new()
 	_check(rules.validate().ok, "the defaults validate")
+	_check(rules.force_camera == 0, "and leave the camera unrestricted, so free roam can work")
+	_check(rules.allow_roaming and rules.roaming_permitted(), "with roaming on by default")
+	_check(not rules.forces_first_person(), "which does not force first person")
+
+	rules.force_camera = 1
+	_check(rules.validate().ok, "a restricted camera still validates with roaming on")
 	_check(
-		rules.force_camera == 1,
-		"and restrict the camera to your own side, which is what a competitive server "
-		+ "wants and a demo does not"
+		not rules.roaming_permitted(),
+		"and wins: a roaming camera goes anywhere, which is the whole thing the restriction "
+		+ "is for"
 	)
-	_check(not rules.allow_roaming, "with roaming off")
-	_check(rules.forces_first_person(), "which forces first person")
+	rules.force_camera = 0
+	rules.allow_roaming = false
+	_check(not rules.roaming_permitted(), "and mp_freeroam 0 turns it off")
+
+	_section("free roam")
+
+	var r2 := DotSpectatorRules.new()
+	_check(r2.set_cvar("mp_freeroam", "0") and not r2.allow_roaming, "mp_freeroam 0 applies")
+	_check(not r2.set_cvar("mp_freeroam", "maybe"), "and a bad value is refused")
+	_check(r2.set_cvar("mp_forcecamera", "1") and r2.force_camera == 1, "mp_forcecamera applies")
+	_check(not r2.set_cvar("mp_forcecamera", "7"), "and is range checked")
+	_check(
+		r2.set_cvar("mp_freeroam_speed", "500") and is_equal_approx(r2.roam_speed, 200.0),
+		"mp_freeroam_speed is clamped"
+	)
+
+	var free := DotSpectatorFreeCam.new()
+	free.seed_from(Transform3D(Basis.from_euler(Vector3(0.2, 1.0, 0.0), EULER_ORDER_YXZ), Vector3(5, 6, 7)))
+	_check(free.position == Vector3(5, 6, 7), "a roam starts where the camera was")
+	_check(is_equal_approx(free.yaw, 1.0) and is_equal_approx(free.pitch, 0.2), "looking the same way")
+	free.look(Vector2(0.0, 10.0))
+	_check(free.pitch < PI / 2.0, "pitch stops short of straight up, or the basis degenerates")
+	free.yaw = 0.0
+	free.pitch = 0.0
+	var before := free.position
+	var _t := free.step(Vector3(0, 0, 1), false, false, 1.0)
+	_check(free.position.is_equal_approx(before + Vector3(0, 0, -12.0)), "forward is -Z at the default speed")
+	var _fast := free.step(Vector3(0, 0, 1), true, false, 1.0)
+	_check(is_equal_approx(before.z - free.position.z, 12.0 + 36.0), "and the fast key triples it")
 
 	rules.allow_roaming = true
-	_check(
-		not rules.validate().ok,
-		"roaming with a restricted camera is refused: a roaming camera goes anywhere, "
-		+ "which is the whole thing the restriction is for"
-	)
-
-	rules.force_camera = 0
-	_check(rules.validate().ok, "and is fine once the camera is unrestricted")
-
 	rules.delay_ticks = 200
 	rules.history_ticks = 100
 	_check(

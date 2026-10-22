@@ -16,7 +16,7 @@ When a player dies, or has not joined a side, they watch somebody else. This add
 
 Most of it is about fairness, because a spectator view is an easy way to cheat. A dead player can call out where the enemy is, and a streamer's viewers can read the map. So the server decides:
 
-- **Who may be watched.** `force_camera` is `0` for everybody, `1` for your own team only (the default) or `2` for nobody (only the map's fixed cameras), the same numbering as the `mp_forcecamera` cvar. Own team only also forces first person, because a camera behind a teammate can see round corners they cannot.
+- **Who may be watched.** `force_camera` is `0` for everybody, `1` for your own team only or `2` for nobody (only the map's fixed cameras), the same numbering as the `mp_forcecamera` cvar. Own team only also forces first person, because a camera behind a teammate can see round corners they cannot.
 - **How late the picture is.** `delay_ticks` makes the camera show the past, so a spectator is not watching live. A broadcast often uses ninety seconds, and a competitive server a few.
 
 When a player dies they get a short **death cam** on where they fell, then a **freeze cam** on their killer, then first person on a teammate. If the person they are watching dies or leaves, they are moved to somebody else.
@@ -68,11 +68,12 @@ DOT_SPECTATE_FORCE_CAMERA=0 godot --headless -- --spectate-delay-ticks=640
 
 | Setting | Default | What it does |
 | --- | --- | --- |
-| `force_camera` | 1 | Who may be watched: 0 everybody, 1 own team (and first person only), 2 nobody |
+| `force_camera` | 0 | Who may be watched: 0 everybody, 1 own team (and first person only), 2 nobody |
 | `allow_while_dead` | true | A dead player may spectate before the round ends |
 | `allow_unassigned` | true | A player on no team may spectate |
 | `allow_while_alive` | false | A living player may spectate (for replay viewers) |
-| `allow_roaming` | false | Offer a free camera. Only works with `force_camera` 0 |
+| `allow_roaming` | true | Offer a free camera (`mp_freeroam`). Only in effect with `force_camera` 0; with a restricted camera it is silently off (`roaming_permitted()`) |
+| `roam_speed` | 12 | Free camera metres a second (`mp_freeroam_speed`); `roam_fast_scale` 3 and `roam_slow_scale` 0.25 are the modifier keys |
 | `death_cam_ticks` | 128 | How long the death cam holds (2 seconds at 64 ticks) |
 | `freeze_cam_ticks` | 192 | How long the freeze cam holds on the killer (3 seconds). 0 skips it |
 | `chase_distance` | 3.5 | How far behind the target the chase camera sits |

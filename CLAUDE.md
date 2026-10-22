@@ -41,4 +41,4 @@ The family's two steps ([game-dev/CLAUDE.md](../../CLAUDE.md#validating-anything
 - Call `on_leave` after the roster has dropped the player. [design](docs/design.md#keyed-by-string-and-on_leave-is-called-after-the-roster-drops-them)
 - A mirror (`authoritative = false`) applies the wire, records its own history when there is a delay, and refuses `on_death` with a `push_error`. [design](docs/design.md#a-mirror-is-told-records-its-own-history-and-refuses-to-start-the-chain)
 
-Deliberately not here: a camera node, smoothing (beyond the probe's collision easing), free-camera keys, demo recording, an overview map, a spectator chat channel. [design](docs/design.md#deliberately-not-here)
+Deliberately not here: a camera node, smoothing (beyond the probe's collision easing), free-camera key bindings (the game binds; `DotSpectatorFreeCam` does the arithmetic), demo recording, an overview map, a spectator chat channel. [design](docs/design.md#deliberately-not-here)

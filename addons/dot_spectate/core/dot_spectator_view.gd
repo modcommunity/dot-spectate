@@ -73,6 +73,7 @@ func to_wire() -> Dictionary:
 		"m": int(mode),
 		"t": target,
 		"p": free_position,
+		"b": free_basis,
 		"i": fixed_index,
 		"u": until_tick,
 		"k": killer,
@@ -87,6 +88,9 @@ func apply_wire(w: Dictionary) -> void:
 	mode = int(w.get("m", int(mode))) as Mode
 	target = str(w.get("t", target))
 	free_position = w.get("p", free_position)
+	var b: Variant = w.get("b", free_basis)
+	if b is Basis:
+		free_basis = b
 	fixed_index = int(w.get("i", fixed_index))
 	until_tick = int(w.get("u", until_tick))
 	killer = str(w.get("k", killer))

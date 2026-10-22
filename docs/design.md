@@ -57,7 +57,13 @@ The rule above (a transform, never a camera) stays, but two modes put the camera
 ## Deliberately not here
 
 - **No camera node, no smoothing, no field-of-view.** (The probe above eases only to stay out of a wall.) A game's rig owns those, and a spectator camera that lerps is a spectator camera fighting the game's own lerp.
-- **No free-camera controls.** `move_free()` takes a position and a basis; what the keys are is `DotFpsSampler`'s business, or the game's.
+- **No free-camera key bindings.** What the keys are is the game's business; `DotSpectatorFreeCam` takes the numbers (move vector, look delta, fast/slow) and returns the transform, and `DotSpectatorManager.toggle_roam()` is the one key that enters and leaves.
 - **No demo recording.** dot-timer already has a replay format and a recorder; a second one here would be a second format.
 - **No overview map or player list.** dot-ui, and the list comes from `targets_for()`.
 - **No spectator chat channel.** dot-chat has scopes and a `membership_fn`; a "dead chat" channel is four lines there and would be a duplicate rule here.
+
+## Free roam is on by default, and a restricted camera switches it off
+
+Decided 2026-10-21: every game offers a free camera to spectators unless the operator says otherwise (`mp_freeroam 0`). `force_camera` therefore defaults to `0`, because a roaming camera goes anywhere and the two cannot both hold. `roaming_permitted()` is `allow_roaming and force_camera == 0`; the combination of a restricted camera and `allow_roaming` is *not* a `validate()` error any more, since roaming is the default and a game that sets `force_camera = 1` has said everything it meant (failing its setup would switch spectating off altogether). The restriction wins, and a roamer is moved back onto a player on the next `advance` when an operator tightens it mid-roam (reason `roaming_off`).
+
+Entering a roam seeds the free pose from where the camera was (`set_mode`), and the view's wire form now carries `"b"`, the basis, so a mirror starts facing the same way. The controls run on the client each frame (`DotSpectatorFreeCam`); the server holds the mode and the entry pose, not a per-frame position.

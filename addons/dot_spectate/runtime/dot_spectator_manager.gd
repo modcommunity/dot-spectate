@@ -241,7 +241,7 @@ func watch(
 ## Change the camera without changing who is being watched.
 func set_mode(key: String, mode: int) -> DotResult:
 	var v := view(key)
-	if mode == DotSpectatorView.Mode.ROAMING and not rules.allow_roaming:
+	if mode == DotSpectatorView.Mode.ROAMING and not rules.roaming_permitted():
 		return DotResult.fail(
 			DotError.CODE_FORBIDDEN, "Roaming is not allowed on this server."
 		)
@@ -262,6 +262,14 @@ func set_mode(key: String, mode: int) -> DotResult:
 					DotSpectatorView.Mode.keys()[wanted],
 				]
 		)
+	if wanted == DotSpectatorView.Mode.ROAMING and v.mode != DotSpectatorView.Mode.ROAMING:
+		# Start the free camera where the last one was, not at the origin: the first frame
+		# of a roam that jumps across the map reads as a crash, and the spectator has to
+		# find their way back to the action.
+		var from := camera_of(key)
+		if from != Transform3D.IDENTITY:
+			v.free_position = from.origin
+			v.free_basis = from.basis.orthonormalized()
 	v.mode = wanted as DotSpectatorView.Mode
 	v.until_tick = -1
 	if not v.follows_target():
@@ -280,9 +288,32 @@ func _permitted_mode(mode: int) -> int:
 		if mode == DotSpectatorView.Mode.CHASE \
 				or mode == DotSpectatorView.Mode.ROAMING:
 			return DotSpectatorView.Mode.FIRST_PERSON
-	if mode == DotSpectatorView.Mode.ROAMING and not rules.allow_roaming:
+	if mode == DotSpectatorView.Mode.ROAMING and not rules.roaming_permitted():
 		return DotSpectatorView.Mode.FIRST_PERSON
 	return mode
+
+
+## Whether this viewer may fly a free camera now. What a game asks before it offers the
+## key, so a server with roaming off shows no prompt for it.
+func can_roam(key: String) -> bool:
+	return rules.roaming_permitted() and may_spectate(key).ok
+
+
+## The free-roam key: into a roam from anything else, back onto a player from a roam.
+##
+## One key rather than two because a spectator who is roaming and wants to stop wants
+## "back to the players", and a key that only enters would leave them to find the
+## cycle key. Returns the mode the viewer ended in.
+func toggle_roam(key: String) -> DotResult:
+	var v := view(key)
+	if v.mode != DotSpectatorView.Mode.ROAMING:
+		return set_mode(key, DotSpectatorView.Mode.ROAMING)
+	var back := next_target(key)
+	if back.ok:
+		return DotResult.success(int(view(key).mode))
+	# Nobody to go back to (everyone left, or the policy shows nothing): the fixed camera
+	# rather than staying out in the level.
+	return set_mode(key, DotSpectatorView.Mode.FIXED)
 
 
 ## Stop watching. What a game calls when somebody respawns.
@@ -501,6 +532,12 @@ func advance(tick: int) -> void:
 			# killer on the tick after they died, so nobody on a competitive server
 			# ever saw who shot them, and every check about the camera's *mode* still
 			# passed because the mode was right and only the target had moved.
+			continue
+		if v.mode == DotSpectatorView.Mode.ROAMING and not rules.roaming_permitted():
+			# An operator turned roaming off (or restricted the camera) while somebody was
+			# out in the level; they go back onto a player rather than keep a camera the
+			# server no longer allows.
+			_retarget(v, &"roaming_off")
 			continue
 		if not v.follows_target() or v.target == "":
 			continue
