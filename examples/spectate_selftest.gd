@@ -16,8 +16,8 @@ extends Node
 ## a mirror". The last section asserts that a mirror REFUSES to start the death chain, and
 ## the refusal is a [code]push_error[/code] because it is a wiring mistake.
 
-const SECTIONS := 10
-const CHECKS := 85
+const SECTIONS := 11
+const CHECKS := 96
 
 const RATE := 64
 
