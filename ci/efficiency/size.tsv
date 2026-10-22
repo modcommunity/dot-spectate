@@ -1,0 +1,3 @@
+# size
+# Baselines only shrink: scripts/<gate> --update lowers or drops entries and refuses to add.
+examples/spectate_selftest.gd::_test_delay_and_wire	120

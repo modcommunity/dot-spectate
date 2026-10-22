@@ -1,0 +1,15 @@
+# comments
+# Baselines only shrink: scripts/<gate> --update lowers or drops entries and refuses to add.
+addons/dot_spectate/core/dot_spectator_history.gd::long_block	2
+addons/dot_spectate/core/dot_spectator_rules.gd::banner	1
+addons/dot_spectate/core/dot_spectator_rules.gd::history	1
+addons/dot_spectate/core/dot_spectator_rules.gd::long_block	8
+addons/dot_spectate/core/dot_spectator_view.gd::long_block	1
+addons/dot_spectate/dot_spectate_api.gd::long_block	2
+addons/dot_spectate/dot_spectate_plugin.gd::long_block	1
+addons/dot_spectate/runtime/dot_spectator_free_cam.gd::long_block	1
+addons/dot_spectate/runtime/dot_spectator_manager.gd::banner	6
+addons/dot_spectate/runtime/dot_spectator_manager.gd::history	1
+addons/dot_spectate/runtime/dot_spectator_manager.gd::long_block	13
+examples/spectate_selftest.gd::banner	3
+examples/spectate_selftest.gd::long_block	1
