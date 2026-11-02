@@ -1,26 +1,9 @@
 class_name DotSpectatorHost
 extends Node
 
-## The wrapper every game wrote around [DotSpectatorManager]: build it, bind the four game
-## questions, forward the viewer calls, and keep the pieces a game would otherwise copy.
-##
-## [codeblock]
-## class_name MyGameSpectate
-## extends DotSpectatorHost
-##
-## func _participants() -> PackedStringArray: return game.player_keys()
-## func _team_of(key: String) -> int: return game.team_of(key)
-## func _is_alive(key: String) -> bool: return game.is_alive(key)
-## func _pose_of(key: String) -> Transform3D:
-##     return eye_pose(game.position_of(key), game.pitch_of(key), game.yaw_of(key))
-## func _current_tick() -> int: return game.current_tick()
-##
-## # then add_child(spectate); spectate.setup(); spectate.advance_live() once a tick.
-## [/codeblock]
-##
-## Keys are [String] like the manager's. A game keyed by [int] or [StringName] converts in
-## its subclass. Everything a game differs in is an export or a [code]_hook[/code]; a game
-## that needs more overrides the method and calls [code]super[/code].
+## The wrapper every game wrote around [DotSpectatorManager]: build it, bind the game questions, forward the viewer calls.
+## Subclass and override [code]_participants[/code], [code]_team_of[/code], [code]_is_alive[/code], [code]_pose_of[/code] (see [method eye_pose]) and [code]_current_tick[/code]; add_child, [code]setup()[/code], then [code]advance_live()[/code] once a tick.
+## Keys are [String] like the manager's; a game keyed by [int] or [StringName] converts in its subclass, and one that needs more overrides the method and calls [code]super[/code].
 
 ## A viewer's view changed, by a call here, a retarget or a timer.
 signal view_changed(key: String)
@@ -88,8 +71,6 @@ func setup() -> DotResult:
 	return DotResult.success(null)
 
 
-# --- Hooks a game overrides --------------------------------------------------
-
 ## Everybody who could be watched.
 func _participants() -> PackedStringArray:
 	return PackedStringArray()
@@ -142,8 +123,6 @@ func eye_pose(position: Vector3, pitch_deg: float, yaw_deg: float) -> Transform3
 	return Transform3D(basis, position + Vector3(0.0, eye_height, 0.0))
 
 
-# --- Ticks and events --------------------------------------------------------
-
 func advance(tick: int) -> void:
 	if manager != null:
 		manager.advance(tick)
@@ -190,8 +169,6 @@ func left(key: String) -> void:
 		manager.on_leave(key)
 		_seen_dead.erase(key)
 
-
-# --- Viewer calls ------------------------------------------------------------
 
 func _unset() -> DotResult:
 	return DotResult.fail(DotError.CODE_STATE, "Spectating is not set up.")
@@ -356,8 +333,6 @@ func _name_of(key: String) -> String:
 		return String(name_fn.call(key))
 	return key
 
-
-# --- Own side ----------------------------------------------------------------
 
 func _on_view_changed(key: String, mode: int, target: String) -> void:
 	_prefer_side(key, mode, target)

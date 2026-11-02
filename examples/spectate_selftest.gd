@@ -717,8 +717,6 @@ func _test_delay_and_wire() -> void:
 	mirror.queue_free()
 
 
-# --- The shared wrapper -----------------------------------------------------
-
 class _Host:
 	extends DotSpectatorHost
 	var teams: Dictionary = {}
