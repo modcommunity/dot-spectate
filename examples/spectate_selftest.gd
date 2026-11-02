@@ -17,7 +17,7 @@ extends Node
 ## the refusal is a [code]push_error[/code] because it is a wiring mistake.
 
 const SECTIONS := 12
-const CHECKS := 116
+const CHECKS := 122
 
 const RATE := 64
 
@@ -787,6 +787,18 @@ func _test_host() -> void:
 	_check(h.line_for("a").contains("free camera"), "line_for names the roam camera")
 	h.manager.rules.allow_roaming = false
 	_check(h.toggle_roam("a").error.code == DotError.CODE_FORBIDDEN, "roam refused with CODE_FORBIDDEN when off")
+
+	h.manager.rules.allow_roaming = true
+	_check(not h.guard_roam and h.can_roam("zzz") == h.manager.can_roam("zzz"), "an unguarded host answers can_roam as the manager does")
+	h.guard_roam = true
+	_check(h.toggle_roam("zzz").error.code == DotError.CODE_STATE, "guard_roam refuses a playing viewer with CODE_STATE")
+	_check(not h.can_roam("zzz") and h.can_roam("a"), "guard_roam: can_roam is false for a player, true for a spectator")
+	h.authoritative = false
+	_check(h.toggle_roam("a").error.code == DotError.CODE_STATE, "guard_roam refuses a mirror with CODE_STATE")
+	h.authoritative = true
+	_check(h.toggle_roam("a").ok, "guard_roam lets a spectator on an authority roam")
+	h.guard_roam = false
+	_check(h.can_roam("zzz") == h.manager.can_roam("zzz"), "without guard_roam can_roam is the manager's")
 
 	h.alive["a"] = true
 	h.spawned("a")

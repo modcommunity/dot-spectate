@@ -41,6 +41,8 @@ signal view_changed(key: String)
 @export var authoritative: bool = true
 ## An automatic choice of target goes to a team-mate when there is one.
 @export var prefer_own_side: bool = false
+## Roaming is asked of the authority and only by somebody who is out: a mirror and a playing viewer get CODE_STATE, and [method can_roam] is false for a player.
+@export var guard_roam: bool = false
 ## Key name shown in [method line_for]; the game binds the key.
 @export var roam_key: String = "G"
 ## The game's own rules object, so cvars it bound are the rules in use. Null: a new one.
@@ -276,12 +278,19 @@ func cycle_mode(key: String) -> DotResult:
 func toggle_roam(key: String) -> DotResult:
 	if manager == null:
 		return _unset()
+	if guard_roam:
+		if not authoritative:
+			return DotResult.fail(DotError.CODE_STATE, "A mirror is told, not asked.")
+		if not manager.is_spectating(key):
+			return DotResult.fail(DotError.CODE_STATE, "You are playing, not watching.")
 	if not manager.can_roam(key):
 		return DotResult.fail(DotError.CODE_FORBIDDEN, "Free roam is off on this server.")
 	return manager.toggle_roam(key)
 
 
 func can_roam(key: String) -> bool:
+	if guard_roam and not is_spectating(key):
+		return false
 	return manager != null and manager.can_roam(key)
 
 
