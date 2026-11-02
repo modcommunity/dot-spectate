@@ -16,8 +16,8 @@ extends Node
 ## a mirror". The last section asserts that a mirror REFUSES to start the death chain, and
 ## the refusal is a [code]push_error[/code] because it is a wiring mistake.
 
-const SECTIONS := 11
-const CHECKS := 96
+const SECTIONS := 12
+const CHECKS := 116
 
 const RATE := 64
 
@@ -50,6 +50,7 @@ func _run() -> void:
 	_test_cameras()
 	await _test_cameras_in_a_level()
 	_test_delay_and_wire()
+	_test_host()
 
 	_line("")
 	_line("%d sections, %d passed, %d failed" % [_section_count, _passed, _failed])
@@ -714,6 +715,95 @@ func _test_delay_and_wire() -> void:
 
 	m.queue_free()
 	mirror.queue_free()
+
+
+# --- The shared wrapper -----------------------------------------------------
+
+class _Host:
+	extends DotSpectatorHost
+	var teams: Dictionary = {}
+	var alive: Dictionary = {}
+	var tick: int = 0
+
+	func _participants() -> PackedStringArray:
+		var out := PackedStringArray(teams.keys())
+		out.sort()
+		return out
+
+	func _team_of(key: String) -> int:
+		return int(teams.get(key, 0))
+
+	func _is_alive(key: String) -> bool:
+		return bool(alive.get(key, false))
+
+	func _pose_of(key: String) -> Transform3D:
+		return eye_pose(Vector3(float(teams.get(key, 0)), 0.0, 0.0), 0.0, 90.0)
+
+	func _current_tick() -> int:
+		return tick
+
+	func _tune_rules(r: DotSpectatorRules) -> DotSpectatorRules:
+		r.cycle_includes_dead = false
+		return r
+
+
+func _test_host() -> void:
+	_section("the shared host")
+	var h := _Host.new()
+	h.tick_rate = 10
+	h.death_cam_seconds = 1.0
+	h.freeze_cam_seconds = 2.0
+	h.prefer_own_side = true
+	h.teams = {"a": 1, "b": 1, "c": 2}
+	h.alive = {"a": true, "b": true, "c": true}
+	_check(h.watch("a", "b").error.code == DotError.CODE_STATE, "a call before setup fails with CODE_STATE, not a null deref")
+	_check(h.camera_for("a") == Transform3D.IDENTITY, "no camera before setup")
+	add_child(h)
+	_check(h.setup().ok, "setup succeeds")
+	_check(h.manager.rules.death_cam_ticks == 10 and h.manager.rules.freeze_cam_ticks == 20, "seconds become ticks at the tick rate")
+	_check(not h.manager.rules.cycle_includes_dead, "the _tune_rules hook ran")
+	_check(h.camera_for("a") == Transform3D.IDENTITY and not h.is_spectating("a"), "a player is not a spectator")
+	var pose := h.eye_pose(Vector3.ZERO, 0.0, 0.0)
+	_check(is_equal_approx(pose.origin.y, 1.6), "eye_pose lifts by eye_height")
+
+	var seen: Array = []
+	h.view_changed.connect(func(k: String) -> void: seen.append(k))
+	h.alive["a"] = false
+	h.death("a", Vector3.ZERO, "c")
+	_check(h.is_spectating("a") and h.mode_of("a") == int(DotSpectatorView.Mode.DEATH_CAM), "death starts the death cam from the host's tick")
+	h.tick = 10
+	h.advance_live()
+	_check(h.mode_of("a") == int(DotSpectatorView.Mode.FREEZE_CAM), "advance_live hands the death cam to the freeze cam")
+	h.tick = 30
+	h.advance_live()
+	_check(h.watching("a") == "b", "the chain ends on a team-mate: own side preferred over the first key")
+	_check(not seen.is_empty(), "view_changed is re-emitted by the host")
+
+	var cycled := h.step("a", 0)
+	_check(cycled.ok or cycled.error.code == DotError.CODE_FORBIDDEN, "step 0 cycles the camera or says why not")
+	_check(h.step("zzz", 1).error.code == DotError.CODE_STATE, "step refuses a viewer who is playing")
+	var roam := h.toggle_roam("a")
+	_check(roam.ok and h.is_roaming("a"), "toggle_roam enters free roam when allowed")
+	_check(h.line_for("a").contains("free camera"), "line_for names the roam camera")
+	h.manager.rules.allow_roaming = false
+	_check(h.toggle_roam("a").error.code == DotError.CODE_FORBIDDEN, "roam refused with CODE_FORBIDDEN when off")
+
+	h.alive["a"] = true
+	h.spawned("a")
+	_check(not h.is_spectating("a"), "spawned returns the viewer to playing")
+
+	h.alive["b"] = false
+	h.death("b", Vector3.ZERO, "")
+	h.advance_client(h.tick)
+	h.alive["b"] = true
+	h.advance_client(h.tick)
+	_check(not h.is_spectating("b"), "a client sees the respawn from liveness alone")
+
+	h.set_force_camera(9)
+	_check(h.manager.rules.force_camera == 2, "set_force_camera clamps")
+	h.authoritative = false
+	_check(h.step("a", 1).error.code == DotError.CODE_STATE, "a mirror host refuses step")
+	h.queue_free()
 
 
 # --- Harness ---------------------------------------------------------------

@@ -45,6 +45,8 @@ spectate.advance(tick)                                   # once a tick
 camera.global_transform = spectate.camera_of(me)         # once a frame
 ```
 
+A game that would otherwise write its own wrapper subclasses `DotSpectatorHost`, which builds the manager and forwards the viewer calls: override `_participants`, `_team_of`, `_is_alive`, `_pose_of` and `_current_tick`, and set the exports (`death_cam_seconds`, `chase_distance`, `prefer_own_side` and so on).
+
 A 2D game uses `camera_2d_of(me)`, which gives a position and an angle.
 
 A spectator moves between targets with `next_target(me)` and `previous_target(me)`, and changes camera with `set_mode(me, DotSpectatorView.Mode.CHASE)`. The modes are `FIRST_PERSON`, `CHASE`, `FIXED` (the map's `fixed_cameras`), `ROAMING` (`move_free()`), and the two timed ones, `DEATH_CAM` and `FREEZE_CAM`. A mode the rules do not allow is changed to one they do.

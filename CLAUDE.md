@@ -21,6 +21,7 @@ Read the family [CLAUDE.md](../../CLAUDE.md) first.
 | `core/dot_spectator_view.gd` | `DotSpectatorView`: one viewer, a `Mode` and a target; its wire form carries the death position `"d"` |
 | `core/dot_spectator_history.gd` | `DotSpectatorHistory`: a bounded ring of where everybody was; `sample` returns `[Transform3D, found]` |
 | `runtime/dot_spectator_manager.gd` | `DotSpectatorManager`: the one node a game holds; `camera_of`, `camera_2d_of`, `on_death`, `on_leave`, `targets_for`, `move_free`, wire form |
+| `runtime/dot_spectator_host.gd` | `DotSpectatorHost`: the wrapper games repeat; subclass and override `_participants`, `_team_of`, `_is_alive`, `_pose_of`, `_current_tick`, `_tune_rules` |
 | `dot_spectate_api.gd` | the API level (2 since `camera_world`) |
 | `examples/spectate_selftest.tscn` | the suite; its "stay out of the level" section is the only one with a level |
 
@@ -40,5 +41,7 @@ The family's two steps ([game-dev/CLAUDE.md](../../CLAUDE.md#validating-anything
 - The chain always hands over, falling back to a fixed camera; the retarget sweep leaves timed cameras alone. Assert the target, not only the mode. [design](docs/design.md#the-death-cam-chain-hands-over)
 - Call `on_leave` after the roster has dropped the player. [design](docs/design.md#keyed-by-string-and-on_leave-is-called-after-the-roster-drops-them)
 - A mirror (`authoritative = false`) applies the wire, records its own history when there is a delay, and refuses `on_death` with a `push_error`. [design](docs/design.md#a-mirror-is-told-records-its-own-history-and-refuses-to-start-the-chain)
+
+- A game wraps the manager by subclassing `DotSpectatorHost`, not by copying a wrapper. What differs is an export or a `_hook`; what a game lacks, add here. [design](docs/design.md#the-shared-host)
 
 Deliberately not here: a camera node, smoothing (beyond the probe's collision easing), free-camera key bindings (the game binds; `DotSpectatorFreeCam` does the arithmetic), demo recording, an overview map, a spectator chat channel. [design](docs/design.md#deliberately-not-here)
