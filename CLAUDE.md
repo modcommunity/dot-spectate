@@ -22,7 +22,7 @@ Read the family [CLAUDE.md](../../CLAUDE.md) first.
 | `core/dot_spectator_history.gd` | `DotSpectatorHistory`: a bounded ring of where everybody was; `sample` returns `[Transform3D, found]` |
 | `runtime/dot_spectator_manager.gd` | `DotSpectatorManager`: the one node a game holds; `camera_of`, `camera_2d_of`, `on_death`, `on_leave`, `targets_for`, `move_free`, wire form |
 | `runtime/dot_spectator_host.gd` | `DotSpectatorHost`: the wrapper games repeat; subclass and override `_participants`, `_team_of`, `_is_alive`, `_pose_of`, `_current_tick`, `_tune_rules` |
-| `dot_spectate_api.gd` | the API level (2 since `camera_world`) |
+| `dot_spectate_api.gd` | the API level (4 since `DotSpectatorHost`) |
 | `examples/spectate_selftest.tscn` | the suite; its "stay out of the level" section is the only one with a level |
 
 Paths except `examples/` are in `addons/dot_spectate/`.

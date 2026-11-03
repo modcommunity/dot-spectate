@@ -12,5 +12,7 @@ extends RefCounted
 #    DotSpectatorManager.can_roam / toggle_roam, the spectator cvars (bind_cvars, follow_cvars).
 #    Behaviour change: `force_camera` defaults to 0 and a roam-plus-restriction rules set no
 #    longer fails validate(); roaming_permitted() is simply false.
-const LEVEL := 3
+# 4: DotSpectatorHost, the shared wrapper over DotSpectatorManager a game configures with
+#    exports (guard_roam, hooks) instead of overriding.
+const LEVEL := 4
 const OLDEST := 1
