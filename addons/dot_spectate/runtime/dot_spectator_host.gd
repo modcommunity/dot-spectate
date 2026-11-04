@@ -306,13 +306,14 @@ func apply_view(
 	view_changed.emit(key)
 
 
-## One HUD line, or "" while playing. Override for a game's own wording.
+## One HUD line, or "" while playing; on a touch screen it says "tap" and names no keys. Override for a game's own wording.
 func line_for(key: String) -> String:
 	if not is_spectating(key):
 		return ""
 	var view := manager.view(key)
 	var who := _name_of(view.target)
-	var roam := "   %s: free camera" % roam_key if can_roam(key) else ""
+	var touch := DotPlatform.has_touch()
+	var roam := "   %s: free camera" % roam_key if can_roam(key) and not touch else ""
 	match view.mode:
 		DotSpectatorView.Mode.DEATH_CAM:
 			return "you are out"
@@ -321,10 +322,14 @@ func line_for(key: String) -> String:
 		DotSpectatorView.Mode.FIXED:
 			return "nobody left to watch%s" % roam
 		DotSpectatorView.Mode.ROAMING:
-			return "free camera   %s back to players" % roam_key
+			return "free camera" if touch else "free camera   %s back to players" % roam_key
 		DotSpectatorView.Mode.CHASE:
+			if touch:
+				return "watching %s  (behind)   tap: next" % who
 			return "watching %s  (behind)   click: next   F5: their eyes%s" % [who, roam]
 		_:
+			if touch:
+				return "watching %s   tap: next" % who
 			return "watching %s   click: next   F5: behind them%s" % [who, roam]
 
 
