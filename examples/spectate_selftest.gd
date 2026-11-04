@@ -17,7 +17,7 @@ extends "res://examples/spectate_selftest_base.gd"
 ## the refusal is a [code]push_error[/code] because it is a wiring mistake.
 
 const SECTIONS := 12
-const CHECKS := 129
+const CHECKS := 131
 
 
 func _ready() -> void:
@@ -344,6 +344,13 @@ class _Host:
 		return r
 
 
+## Stands in for a DotTouchButtons button, which takes a touch press in _input when it hits.
+class _TouchTaker extends Node:
+	func _input(event: InputEvent) -> void:
+		if event is InputEventScreenTouch and event.pressed:
+			get_viewport().set_input_as_handled()
+
+
 func _test_host() -> void:
 	_section("the shared host")
 	var h := _Host.new()
@@ -390,6 +397,14 @@ func _test_host() -> void:
 	var before := h.watching("a")
 	h._unhandled_input(tap)
 	_check(h.watching("a") != before, "a synthetic tap advances the target")
+	var taker := _TouchTaker.new()
+	add_child(taker)
+	before = h.watching("a")
+	get_viewport().push_input(tap)
+	_check(h.watching("a") == before, "a touch an on-screen button handled in _input does not step")
+	taker.free()
+	get_viewport().push_input(tap)
+	_check(h.watching("a") != before, "the same touch with no button under it steps through the viewport")
 	h.tap_key = ""
 	var tp := DotPlatform.touch_override
 	DotPlatform.touch_override = 1
