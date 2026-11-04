@@ -28,6 +28,8 @@ signal view_changed(key: String)
 @export var guard_roam: bool = false
 ## Key name shown in [method line_for]; the game binds the key.
 @export var roam_key: String = "G"
+## The local viewer. Non-empty: a left click or a screen tap that nothing else handled steps to the next target. Empty: the game binds input itself.
+@export var tap_key: String = ""
 ## The game's own rules object, so cvars it bound are the rules in use. Null: a new one.
 @export var rules: DotSpectatorRules = null
 
@@ -69,6 +71,23 @@ func setup() -> DotResult:
 		"roaming": manager.rules.roaming_permitted(),
 	})
 	return DotResult.success(null)
+
+
+## Left click or screen tap to the next target. Arrives unhandled, so a touch button that took the press never gets here.
+func _unhandled_input(event: InputEvent) -> void:
+	if tap_key != "" and is_next_press(event) and step(tap_key, 1).ok:
+		get_viewport().set_input_as_handled()
+
+
+## Whether [param event] is a real press that means "next": a touch, or a left click. The mouse a touch emulates and the touch a mouse emulates are skipped, or one tap would step twice.
+static func is_next_press(event: InputEvent) -> bool:
+	if event.device == InputEvent.DEVICE_ID_EMULATION:
+		return false
+	if event is InputEventScreenTouch:
+		return event.pressed
+	if event is InputEventMouseButton:
+		return event.pressed and event.button_index == MOUSE_BUTTON_LEFT
+	return false
 
 
 ## Everybody who could be watched.
