@@ -42,7 +42,7 @@ func _manager() -> DotSpectatorManager:
 	return m
 
 
-# --- Rules ------------------------------------------------------------------
+# Rules
 
 func _test_rules() -> void:
 	_section("rules")
@@ -163,7 +163,7 @@ func _test_history() -> void:
 	_check(h.size() == 0, "and it can be emptied")
 
 
-# --- Policy -----------------------------------------------------------------
+# Policy
 
 func _test_policy() -> void:
 	_section("who may watch whom")
@@ -404,7 +404,7 @@ func _test_retargeting() -> void:
 	m.queue_free()
 
 
-# --- Harness ---------------------------------------------------------------
+# Harness
 
 func _section(title: String) -> void:
 	_section_count += 1
