@@ -41,6 +41,7 @@ func _run() -> void:
 	await _test_cameras_in_a_level()
 	_test_delay_and_wire()
 	_test_host()
+	_test_host_subclass()
 
 	_line("")
 	_line("%d sections, %d passed, %d failed" % [_section_count, _passed, _failed])
@@ -344,11 +345,41 @@ class _Host:
 		return r
 
 
+## A game keyed by StringName that wraps the viewer calls: what a per-game spectate script is.
+class _LoggingHost:
+	extends _Host
+	var watched: Array = []
+
+	func watch(key: String, target: String) -> DotResult:
+		watched.append(key)
+		return super.watch(key, target)
+
+	func stop(key: String) -> void:
+		watched.append("stop " + key)
+		super.stop(key)
+
+
 ## Stands in for a DotTouchButtons button, which takes a touch press in _input when it hits.
 class _TouchTaker extends Node:
 	func _input(event: InputEvent) -> void:
 		if event is InputEventScreenTouch and event.pressed:
 			get_viewport().set_input_as_handled()
+
+
+func _test_host_subclass() -> void:
+	_section("a game subclass of the host")
+	var h := _LoggingHost.new()
+	h.teams = {"a": 1, "b": 1}
+	h.alive = {"a": true, "b": true}
+	add_child(h)
+	_check(h.setup().ok, "the subclass sets up")
+	var sn_viewer: StringName = &"a"
+	var sn_target: StringName = &"b"
+	_check(h.watch(sn_viewer, sn_target).ok, "StringName keys are accepted by the String-keyed calls")
+	_check(h.watching("a") == "b" and h.watched == ["a"], "an override sees the call and super does the work")
+	h.stop(sn_viewer)
+	_check(not h.is_spectating("a") and h.watched == ["a", "stop a"], "stop goes through the override too")
+	h.queue_free()
 
 
 func _test_host() -> void:
