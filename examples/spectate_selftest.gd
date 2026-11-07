@@ -17,7 +17,7 @@ extends "res://examples/spectate_selftest_base.gd"
 ## the refusal is a [code]push_error[/code] because it is a wiring mistake.
 
 const SECTIONS := 12
-const CHECKS := 122
+const CHECKS := 131
 
 
 func _ready() -> void:
@@ -344,6 +344,13 @@ class _Host:
 		return r
 
 
+## Stands in for a DotTouchButtons button, which takes a touch press in _input when it hits.
+class _TouchTaker extends Node:
+	func _input(event: InputEvent) -> void:
+		if event is InputEventScreenTouch and event.pressed:
+			get_viewport().set_input_as_handled()
+
+
 func _test_host() -> void:
 	_section("the shared host")
 	var h := _Host.new()
@@ -375,6 +382,35 @@ func _test_host() -> void:
 	h.advance_live()
 	_check(h.watching("a") == "b", "the chain ends on a team-mate: own side preferred over the first key")
 	_check(not seen.is_empty(), "view_changed is re-emitted by the host")
+	var tap := InputEventScreenTouch.new()
+	tap.pressed = true
+	var emu := InputEventMouseButton.new()
+	emu.pressed = true
+	emu.button_index = MOUSE_BUTTON_LEFT
+	emu.device = InputEvent.DEVICE_ID_EMULATION
+	var click := InputEventMouseButton.new()
+	click.pressed = true
+	click.button_index = MOUSE_BUTTON_LEFT
+	_check(DotSpectatorHost.is_next_press(tap) and DotSpectatorHost.is_next_press(click), "a touch and a left click both mean next")
+	_check(not DotSpectatorHost.is_next_press(emu), "the mouse a touch emulates is not a second press")
+	h.tap_key = "a"
+	var before := h.watching("a")
+	h._unhandled_input(tap)
+	_check(h.watching("a") != before, "a synthetic tap advances the target")
+	var taker := _TouchTaker.new()
+	add_child(taker)
+	before = h.watching("a")
+	get_viewport().push_input(tap)
+	_check(h.watching("a") == before, "a touch an on-screen button handled in _input does not step")
+	taker.free()
+	get_viewport().push_input(tap)
+	_check(h.watching("a") != before, "the same touch with no button under it steps through the viewport")
+	h.tap_key = ""
+	var tp := DotPlatform.touch_override
+	DotPlatform.touch_override = 1
+	var spectating_line := h.line_for("a")
+	DotPlatform.touch_override = tp
+	_check(spectating_line.contains("tap: next") and not spectating_line.contains("click"), "line_for says tap: next on touch while watching")
 
 	var cycled := h.step("a", 0)
 	_check(cycled.ok or cycled.error.code == DotError.CODE_FORBIDDEN, "step 0 cycles the camera or says why not")
@@ -382,6 +418,15 @@ func _test_host() -> void:
 	var roam := h.toggle_roam("a")
 	_check(roam.ok and h.is_roaming("a"), "toggle_roam enters free roam when allowed")
 	_check(h.line_for("a").contains("free camera"), "line_for names the roam camera")
+	var was_touch := DotPlatform.touch_override
+	DotPlatform.touch_override = 1
+	var tl := h.line_for("a")
+	DotPlatform.touch_override = 0
+	var dl := h.line_for("a")
+	DotPlatform.touch_override = was_touch
+	_check(tl != "" and not tl.contains("click") and not tl.contains("F5") and not tl.contains(h.roam_key + ":"), "line_for on touch names no keys")
+	_check(dl.contains("free camera") and dl.contains(h.roam_key), "line_for on desktop keeps the key hints")
+	_check(h.line_for("zzz") == "", "line_for is empty for a player on any platform")
 	h.manager.rules.allow_roaming = false
 	_check(h.toggle_roam("a").error.code == DotError.CODE_FORBIDDEN, "roam refused with CODE_FORBIDDEN when off")
 

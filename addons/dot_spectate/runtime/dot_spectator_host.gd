@@ -28,6 +28,8 @@ signal view_changed(key: String)
 @export var guard_roam: bool = false
 ## Key name shown in [method line_for]; the game binds the key.
 @export var roam_key: String = "G"
+## The local viewer. Non-empty: a left click or a screen tap that nothing else handled steps to the next target. Empty: the game binds input itself.
+@export var tap_key: String = ""
 ## The game's own rules object, so cvars it bound are the rules in use. Null: a new one.
 @export var rules: DotSpectatorRules = null
 
@@ -69,6 +71,23 @@ func setup() -> DotResult:
 		"roaming": manager.rules.roaming_permitted(),
 	})
 	return DotResult.success(null)
+
+
+## Left click or screen tap to the next target. Arrives unhandled, so a touch button that took the press never gets here.
+func _unhandled_input(event: InputEvent) -> void:
+	if tap_key != "" and is_next_press(event) and step(tap_key, 1).ok:
+		get_viewport().set_input_as_handled()
+
+
+## Whether [param event] is a real press that means "next": a touch, or a left click. The mouse a touch emulates and the touch a mouse emulates are skipped, or one tap would step twice.
+static func is_next_press(event: InputEvent) -> bool:
+	if event.device == InputEvent.DEVICE_ID_EMULATION:
+		return false
+	if event is InputEventScreenTouch:
+		return event.pressed
+	if event is InputEventMouseButton:
+		return event.pressed and event.button_index == MOUSE_BUTTON_LEFT
+	return false
 
 
 ## Everybody who could be watched.
@@ -306,13 +325,14 @@ func apply_view(
 	view_changed.emit(key)
 
 
-## One HUD line, or "" while playing. Override for a game's own wording.
+## One HUD line, or "" while playing; on a touch screen it says "tap" and names no keys. Override for a game's own wording.
 func line_for(key: String) -> String:
 	if not is_spectating(key):
 		return ""
 	var view := manager.view(key)
 	var who := _name_of(view.target)
-	var roam := "   %s: free camera" % roam_key if can_roam(key) else ""
+	var touch := DotPlatform.has_touch()
+	var roam := "   %s: free camera" % roam_key if can_roam(key) and not touch else ""
 	match view.mode:
 		DotSpectatorView.Mode.DEATH_CAM:
 			return "you are out"
@@ -321,10 +341,14 @@ func line_for(key: String) -> String:
 		DotSpectatorView.Mode.FIXED:
 			return "nobody left to watch%s" % roam
 		DotSpectatorView.Mode.ROAMING:
-			return "free camera   %s back to players" % roam_key
+			return "free camera" if touch else "free camera   %s back to players" % roam_key
 		DotSpectatorView.Mode.CHASE:
+			if touch:
+				return "watching %s  (behind)   tap: next" % who
 			return "watching %s  (behind)   click: next   F5: their eyes%s" % [who, roam]
 		_:
+			if touch:
+				return "watching %s   tap: next" % who
 			return "watching %s   click: next   F5: behind them%s" % [who, roam]
 
 
