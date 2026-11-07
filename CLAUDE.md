@@ -29,7 +29,7 @@ Paths except `examples/` are in `addons/dot_spectate/`.
 
 ## Running and testing
 
-The family's two steps ([game-dev/CLAUDE.md](../../CLAUDE.md#validating-anything)), then `timeout 120 godot --headless --path . res://examples/spectate_selftest.tscn`. It prints one `push_error` on purpose (`on_death` on a mirror); any other error in its stderr is real.
+The family's two steps ([family CLAUDE.md](../../CLAUDE.md#validating-anything)), then `timeout 120 godot --headless --path . res://examples/spectate_selftest.tscn`. It prints one `push_error` on purpose (`on_death` on a mirror); any other error in its stderr is real.
 
 ## Rules that bite
 
