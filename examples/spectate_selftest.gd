@@ -16,7 +16,7 @@ extends "res://examples/spectate_selftest_base.gd"
 ## a mirror". The last section asserts that a mirror REFUSES to start the death chain, and
 ## the refusal is a [code]push_error[/code] because it is a wiring mistake.
 
-const SECTIONS := 12
+const SECTIONS := 13
 const CHECKS := 131
 
 
@@ -370,7 +370,7 @@ func _test_host_subclass() -> void:
 	_section("a game subclass of the host")
 	var h := _LoggingHost.new()
 	h.teams = {"a": 1, "b": 1}
-	h.alive = {"a": true, "b": true}
+	h.alive = {"a": false, "b": true}
 	add_child(h)
 	_check(h.setup().ok, "the subclass sets up")
 	var sn_viewer: StringName = &"a"
