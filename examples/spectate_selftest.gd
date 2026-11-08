@@ -17,7 +17,7 @@ extends "res://examples/spectate_selftest_base.gd"
 ## the refusal is a [code]push_error[/code] because it is a wiring mistake.
 
 const SECTIONS := 13
-const CHECKS := 131
+const CHECKS := 135
 
 
 func _ready() -> void:
