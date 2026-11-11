@@ -159,8 +159,13 @@ func advance_client(tick: int) -> void:
 	if manager == null:
 		return
 	manager.advance(tick)
-	for key in manager.viewers():
-		if not _participants().has(key):
+	var viewers := manager.viewers()
+	if viewers.is_empty():
+		return
+	# Once per tick, not per viewer: a game's roster is usually built fresh on each call.
+	var present := _participants()
+	for key in viewers:
+		if not present.has(key):
 			manager.stop(key)
 			_seen_dead.erase(key)
 		elif not _is_alive(key):
