@@ -1,5 +1,3 @@
-# dot-spectate
-
 Decides who a player may watch, which camera they get and where it goes, for when they die or have not joined a side. It gives you a `Transform3D` (or a 2D position and angle); your game puts its camera there.
 
 A spectator view is an easy way to cheat, so the server decides:
