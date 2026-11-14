@@ -1,32 +1,22 @@
-This is the **spectate** asset for TMC's **Dot** collection. It adds the part of a multiplayer game that decides who may watch whom, what they are allowed to see, and where the camera goes.
+# dot-spectate
 
-This collection of assets provides modular building blocks for creating games and applications within the TMC ecosystem, ensuring consistency and interoperability across all `dot-*` assets. This includes core functionality, networking, authentication, cloud integration, and more.
+Decides who a player may watch, which camera they get and where it goes, for when they die or have not joined a side. It gives you a `Transform3D` (or a 2D position and angle); your game puts its camera there.
 
-**These assets are COMPLETELY OPEN SOURCE**. You are free to use, modify, and distribute them under the terms of the MIT license. The only thing not open source is the back-end web infrastructure. So if you opt into using your own authentication backend instead of integrating with TMC, you will need to build and integrate your own back-end infrastructure.
+A spectator view is an easy way to cheat, so the server decides:
 
-## From Maintainer & WARNING
-This asset, along with all the others, was built initially with **Claude Code** and will continue to be maintained and extended using it. This is because I (`gamemann`) cannot build the entire TMC platform alone (I wish I could lol).
+- **Who may be watched.** `force_camera` is `0` for everybody, `1` for own team only (and first person only, since a chase camera sees round corners) or `2` for nobody (only the map's fixed cameras), matching the `mp_forcecamera` cvar.
+- **How late the picture is.** `delay_ticks` shows the past, so a spectator is not watching live.
 
-**Please treat this as partially tested.** Every asset has its own headless test suite and those suites pass, but very little of this has been in front of real players yet. Expect rough edges, and please report anything you run into.
+A dead player gets a short death cam where they fell, a freeze cam on their killer, then first person on a teammate. If the target dies or leaves, they move to somebody else.
 
-I intend on reviewing code, testing, and editing documentation regularly. If you're interested in helping out, please let me know!
+## Install
 
-## What it does
-When a player dies, or has not joined a side, they watch somebody else. This addon decides who they may watch, which camera they get, and where that camera is. It does not move a camera itself: it gives you a `Transform3D` (or a 2D position and angle) and your game puts its camera there.
+1. Get [Godot 4.7](https://godotengine.org/download).
+2. Either use [dot-bootstrap](https://github.com/modcommunity/dot-bootstrap), which clones every project and links the addons, or copy `addons/dot_spectate/` and [dot-core](https://github.com/modcommunity/dot-core)'s `addons/dot_core/` into your project and enable dot-spectate in *Project > Project Settings > Plugins*.
 
-Most of it is about fairness, because a spectator view is an easy way to cheat. A dead player can call out where the enemy is, and a streamer's viewers can read the map. So the server decides:
+dot-core is the only dependency.
 
-- **Who may be watched.** `force_camera` is `0` for everybody, `1` for your own team only or `2` for nobody (only the map's fixed cameras), the same numbering as the `mp_forcecamera` cvar. Own team only also forces first person, because a camera behind a teammate can see round corners they cannot.
-- **How late the picture is.** `delay_ticks` makes the camera show the past, so a spectator is not watching live. A broadcast often uses ninety seconds, and a competitive server a few.
-
-When a player dies they get a short **death cam** on where they fell, then a **freeze cam** on their killer, then first person on a teammate. If the person they are watching dies or leaves, they are moved to somebody else.
-
-## Getting started
-You need [Godot 4.7](https://godotengine.org/download). The easiest way to get this addon and the ones it needs is [dot-bootstrap](https://github.com/modcommunity/dot-bootstrap), which clones every project and links the addons into each one.
-
-To add it to your own project by hand, copy `addons/dot_spectate/` and [dot-core](https://github.com/modcommunity/dot-core)'s `addons/dot_core/` into it and enable dot-spectate in **Project → Project Settings → Plugins**. dot-core is the only dependency.
-
-## Using it
+## Use
 
 ```gdscript
 var spectate := DotSpectatorManager.new()
@@ -45,18 +35,21 @@ spectate.advance(tick)                                   # once a tick
 camera.global_transform = spectate.camera_of(me)         # once a frame
 ```
 
-A game that would otherwise write its own wrapper subclasses `DotSpectatorHost`, which builds the manager and forwards the viewer calls: override `_participants`, `_team_of`, `_is_alive`, `_pose_of` and `_current_tick`, and set the exports (`death_cam_seconds`, `chase_distance`, `prefer_own_side` and so on).
+Or subclass `DotSpectatorHost`, which builds the manager and forwards the calls: override `_participants`, `_team_of`, `_is_alive`, `_pose_of` and `_current_tick`. A 2D game uses `camera_2d_of(me)`.
 
-A 2D game uses `camera_2d_of(me)`, which gives a position and an angle.
+| Call | Does |
+| --- | --- |
+| `next_target(me)`, `previous_target(me)` | Cycle targets. |
+| `set_mode(me, DotSpectatorView.Mode.CHASE)` | Change camera. A mode the rules forbid becomes one they allow. |
+| `targets_for(me)`, `may_watch(me, them)` | Build a name list the server will accept. |
+| `target_filter` | Your own `(viewer, target) -> bool` rule. |
+| `to_wire(key)`, `apply_wire()` | Server sends each viewer their view; the client manager (`authoritative = false`) loads it. |
 
-A spectator moves between targets with `next_target(me)` and `previous_target(me)`, and changes camera with `set_mode(me, DotSpectatorView.Mode.CHASE)`. The modes are `FIRST_PERSON`, `CHASE`, `FIXED` (the map's `fixed_cameras`), `ROAMING` (`move_free()`), and the two timed ones, `DEATH_CAM` and `FREEZE_CAM`. A mode the rules do not allow is changed to one they do.
-
-A client builds its list of names from `targets_for(me)` and can ask `may_watch(me, them)` before offering one, so it never shows a name the server would refuse. `target_filter` adds a rule of your own, `(viewer, target) -> bool`. The server sends each viewer their view with `to_wire(key)`, and the client's manager, with `authoritative` set to false, loads it with `apply_wire()`.
-
-Signals: `view_changed`, `retargeted` (their target went away) and `timed_out` (a death or freeze cam ended).
+Modes: `FIRST_PERSON`, `CHASE`, `FIXED`, `ROAMING` (`move_free()`), `DEATH_CAM`, `FREEZE_CAM`. Signals: `view_changed`, `retargeted`, `timed_out`.
 
 ## Settings
-The rules live in a `DotSpectatorRules` resource, set on the manager's `rules` (it makes a default one if you do not). Like every Dot config it is layered: inspector defaults, then a JSON file, then the environment, then the command line. Call `load_layered()` on it before `setup()` to apply them:
+
+Rules live in a `DotSpectatorRules` resource on the manager's `rules`, layered like every dot config: inspector defaults, JSON file, environment, command line. Call `load_layered()` before `setup()`.
 
 ```gdscript
 var rules := DotSpectatorRules.new()
@@ -64,33 +57,30 @@ rules.load_layered("user://spectate.json")
 spectate.rules = rules
 ```
 
-```bash
-DOT_SPECTATE_FORCE_CAMERA=0 godot --headless -- --spectate-delay-ticks=640
-```
+Example: `DOT_SPECTATE_FORCE_CAMERA=0 <your server> --spectate-delay-ticks=640`.
 
 | Setting | Default | What it does |
 | --- | --- | --- |
-| `force_camera` | 0 | Who may be watched: 0 everybody, 1 own team (and first person only), 2 nobody |
-| `allow_while_dead` | true | A dead player may spectate before the round ends |
-| `allow_unassigned` | true | A player on no team may spectate |
-| `allow_while_alive` | false | A living player may spectate (for replay viewers) |
-| `allow_roaming` | true | Offer a free camera (`mp_freeroam`). Only in effect with `force_camera` 0; with a restricted camera it is silently off (`roaming_permitted()`) |
-| `roam_speed` | 12 | Free camera metres a second (`mp_freeroam_speed`); `roam_fast_scale` 3 and `roam_slow_scale` 0.25 are the modifier keys |
-| `death_cam_ticks` | 128 | How long the death cam holds (2 seconds at 64 ticks) |
-| `freeze_cam_ticks` | 192 | How long the freeze cam holds on the killer (3 seconds). 0 skips it |
-| `chase_distance` | 3.5 | How far behind the target the chase camera sits |
-| `chase_height` | 0.8 | How far above them |
-| `auto_retarget` | true | Move a spectator on when their target dies or leaves |
-| `cycle_includes_dead` | false | Dead players are in the cycle |
-| `delay_ticks` | 0 | How far behind live the camera is. 0 is live |
-| `history_ticks` | 128 | How much pose history to keep. Raised to `delay_ticks + 1` if lower |
+| `force_camera` | 0 | 0 everybody, 1 own team (first person only), 2 nobody. |
+| `allow_while_dead` | true | A dead player may spectate before the round ends. |
+| `allow_unassigned` | true | A player on no team may spectate. |
+| `allow_while_alive` | false | A living player may spectate (replay viewers). |
+| `allow_roaming` | true | Offer a free camera. Only effective with `force_camera` 0. |
+| `roam_speed` | 12 | Free camera metres per second. `roam_fast_scale` 3 and `roam_slow_scale` 0.25 are the modifier keys. |
+| `death_cam_ticks` | 128 | How long the death cam holds. |
+| `freeze_cam_ticks` | 192 | How long the freeze cam holds on the killer. 0 skips it. |
+| `chase_distance`, `chase_height` | 3.5, 0.8 | Chase camera offset behind and above the target. |
+| `auto_retarget` | true | Move a spectator on when their target dies or leaves. |
+| `cycle_includes_dead` | false | Dead players are in the cycle. |
+| `delay_ticks` | 0 | How far behind live the camera is. 0 is live. |
+| `history_ticks` | 128 | Pose history kept. Raised to `delay_ticks + 1` if lower. |
 
 ## Testing
 
-```bash
-godot --headless --path . --import
-godot --headless --path . res://examples/spectate_selftest.tscn
-```
+Import the project once, then run `examples/spectate_selftest.tscn` headless with Godot.
 
-## License
-MIT. See [LICENSE](LICENSE).
+## Status and licence
+
+Part of the TMC **dot-\*** family of Godot addons. Written with Claude Code and maintained by `gamemann`. Every addon has headless tests, but little of this has been played by real users yet, so expect rough edges and please [open an issue](https://github.com/modcommunity/dot-spectate/issues) when you hit one.
+
+MIT licence, see [LICENSE](LICENSE). The only closed part of the TMC platform is the web back end; you can use your own instead of TMC's.
