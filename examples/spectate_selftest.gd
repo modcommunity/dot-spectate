@@ -413,36 +413,30 @@ func _test_host() -> void:
 	h.advance_live()
 	_check(h.watching("a") == "b", "the chain ends on a team-mate: own side preferred over the first key")
 	_check(not seen.is_empty(), "view_changed is re-emitted by the host")
-	var tap := InputEventScreenTouch.new()
-	tap.pressed = true
-	var emu := InputEventMouseButton.new()
-	emu.pressed = true
-	emu.button_index = MOUSE_BUTTON_LEFT
-	emu.device = InputEvent.DEVICE_ID_EMULATION
-	var click := InputEventMouseButton.new()
-	click.pressed = true
-	click.button_index = MOUSE_BUTTON_LEFT
-	_check(DotSpectatorHost.is_next_press(tap) and DotSpectatorHost.is_next_press(click), "a touch and a left click both mean next")
-	_check(not DotSpectatorHost.is_next_press(emu), "the mouse a touch emulates is not a second press")
-	h.tap_key = "a"
-	var before := h.watching("a")
-	h._unhandled_input(tap)
-	_check(h.watching("a") != before, "a synthetic tap advances the target")
-	var taker := _TouchTaker.new()
-	add_child(taker)
-	before = h.watching("a")
-	get_viewport().push_input(tap)
-	_check(h.watching("a") == before, "a touch an on-screen button handled in _input does not step")
-	taker.free()
-	get_viewport().push_input(tap)
-	_check(h.watching("a") != before, "the same touch with no button under it steps through the viewport")
-	h.tap_key = ""
-	var tp := DotPlatform.touch_override
-	DotPlatform.touch_override = 1
-	var spectating_line := h.line_for("a")
-	DotPlatform.touch_override = tp
-	_check(spectating_line.contains("tap: next") and not spectating_line.contains("click"), "line_for says tap: next on touch while watching")
+	_host_taps(h)
 
+	_host_roam(h)
+
+	h.alive["a"] = true
+	h.spawned("a")
+	_check(not h.is_spectating("a"), "spawned returns the viewer to playing")
+
+	h.alive["b"] = false
+	h.death("b", Vector3.ZERO, "")
+	h.advance_client(h.tick)
+	h.alive["b"] = true
+	h.advance_client(h.tick)
+	_check(not h.is_spectating("b"), "a client sees the respawn from liveness alone")
+
+	h.set_force_camera(9)
+	_check(h.manager.rules.force_camera == 2, "set_force_camera clamps")
+	h.authoritative = false
+	_check(h.step("a", 1).error.code == DotError.CODE_STATE, "a mirror host refuses step")
+	h.queue_free()
+
+
+## Stepping and free roam: refused for a player, forbidden when off, and guard_roam's rules.
+func _host_roam(h: _Host) -> void:
 	var cycled := h.step("a", 0)
 	_check(cycled.ok or cycled.error.code == DotError.CODE_FORBIDDEN, "step 0 cycles the camera or says why not")
 	_check(h.step("zzz", 1).error.code == DotError.CODE_STATE, "step refuses a viewer who is playing")
@@ -473,19 +467,35 @@ func _test_host() -> void:
 	h.guard_roam = false
 	_check(h.can_roam("zzz") == h.manager.can_roam("zzz"), "without guard_roam can_roam is the manager's")
 
-	h.alive["a"] = true
-	h.spawned("a")
-	_check(not h.is_spectating("a"), "spawned returns the viewer to playing")
 
-	h.alive["b"] = false
-	h.death("b", Vector3.ZERO, "")
-	h.advance_client(h.tick)
-	h.alive["b"] = true
-	h.advance_client(h.tick)
-	_check(not h.is_spectating("b"), "a client sees the respawn from liveness alone")
-
-	h.set_force_camera(9)
-	_check(h.manager.rules.force_camera == 2, "set_force_camera clamps")
-	h.authoritative = false
-	_check(h.step("a", 1).error.code == DotError.CODE_STATE, "a mirror host refuses step")
-	h.queue_free()
+## A tap or left click steps to the next target; an emulated mouse, or a touch an on-screen button took, does not.
+func _host_taps(h: _Host) -> void:
+	var tap := InputEventScreenTouch.new()
+	tap.pressed = true
+	var emu := InputEventMouseButton.new()
+	emu.pressed = true
+	emu.button_index = MOUSE_BUTTON_LEFT
+	emu.device = InputEvent.DEVICE_ID_EMULATION
+	var click := InputEventMouseButton.new()
+	click.pressed = true
+	click.button_index = MOUSE_BUTTON_LEFT
+	_check(DotSpectatorHost.is_next_press(tap) and DotSpectatorHost.is_next_press(click), "a touch and a left click both mean next")
+	_check(not DotSpectatorHost.is_next_press(emu), "the mouse a touch emulates is not a second press")
+	h.tap_key = "a"
+	var before := h.watching("a")
+	h._unhandled_input(tap)
+	_check(h.watching("a") != before, "a synthetic tap advances the target")
+	var taker := _TouchTaker.new()
+	add_child(taker)
+	before = h.watching("a")
+	get_viewport().push_input(tap)
+	_check(h.watching("a") == before, "a touch an on-screen button handled in _input does not step")
+	taker.free()
+	get_viewport().push_input(tap)
+	_check(h.watching("a") != before, "the same touch with no button under it steps through the viewport")
+	h.tap_key = ""
+	var tp := DotPlatform.touch_override
+	DotPlatform.touch_override = 1
+	var spectating_line := h.line_for("a")
+	DotPlatform.touch_override = tp
+	_check(spectating_line.contains("tap: next") and not spectating_line.contains("click"), "line_for says tap: next on touch while watching")
