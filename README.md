@@ -47,7 +47,7 @@ Modes: `FIRST_PERSON`, `CHASE`, `FIXED`, `ROAMING` (`move_free()`), `DEATH_CAM`,
 
 ## Settings
 
-Rules live in a `DotSpectatorRules` resource on the manager's `rules`, layered like every dot config: inspector defaults, JSON file, environment, command line. Call `load_layered()` before `setup()`.
+Rules live in a `DotSpectatorRules` resource on the manager's `rules`, layered like every Gamespice config: inspector defaults, JSON file, environment, command line. Call `load_layered()` before `setup()`.
 
 ```gdscript
 var rules := DotSpectatorRules.new()
