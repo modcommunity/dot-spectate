@@ -55,7 +55,7 @@ rules.load_layered("user://spectate.json")
 spectate.rules = rules
 ```
 
-Example: `DOT_SPECTATE_FORCE_CAMERA=0 <your server> --spectate-delay-ticks=640`.
+Example: `GS_SPECTATE_FORCE_CAMERA=0 <your server> --spectate-delay-ticks=640`.
 
 | Setting | Default | What it does |
 | --- | --- | --- |
