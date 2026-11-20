@@ -12,7 +12,7 @@ extends RefCounted
 ##
 ## [b]Bounded, and the bound is checked.[/b] A history that grows with the round is a
 ## memory leak with a plausible name, and this family has already shipped a recorder
-## with no ceiling — dot-timer's [code]max_replay_seconds[/code] was a documented
+## with no ceiling — GameSpice Timer's [code]max_replay_seconds[/code] was a documented
 ## setting that nothing read, which on a server is a player idling in a run for hours.
 
 ## tick -> {key: Transform3D}

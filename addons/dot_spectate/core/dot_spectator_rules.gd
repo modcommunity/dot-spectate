@@ -92,7 +92,7 @@ signal rules_changed
 ##
 ## Bounded on purpose: a history that grows with the round is a memory leak with a
 ## plausible name, and this family has shipped one of those in a recorder already —
-## dot-timer's [code]max_replay_seconds[/code] was a setting nothing read.
+## GameSpice Timer's [code]max_replay_seconds[/code] was a setting nothing read.
 @export_range(2, 100000, 1) var history_ticks: int = 128
 
 
@@ -157,8 +157,8 @@ func cvar_specs() -> Array[Dictionary]:
 ## Registers the spectator cvars through [param add], a server module's [code]add_cvar[/code]
 ## or anything shaped [code](name, default, description, flags) -> cvar[/code] with a
 ## [code]changed[/code] signal and [code]get_string()[/code], and keeps these rules in step.
-## Pass dot-server's FLAG_REPLICATED so clients' mirrors follow. Duck-typed because
-## dot-server is not a dependency; a value the cvar already holds (argv, a config file) is
+## Pass GameSpice Server's FLAG_REPLICATED so clients' mirrors follow. Duck-typed because
+## GameSpice Server is not a dependency; a value the cvar already holds (argv, a config file) is
 ## read back after registering.
 func bind_cvars(add: Callable, flags: int = 0) -> Array:
 	var made: Array = []
@@ -178,7 +178,7 @@ func bind_cvars(add: Callable, flags: int = 0) -> Array:
 	return made
 
 
-## Follows a server's values through [param source] (dot-server's [code]DotClientLink[/code],
+## Follows a server's values through [param source] (GameSpice Server's [code]DotClientLink[/code],
 ## or anything with [code]replicated_cvar(name, fallback)[/code] and a
 ## [code]replicated_cvar_changed(name, value)[/code] signal). False when it cannot.
 func follow_cvars(source: Object) -> bool:

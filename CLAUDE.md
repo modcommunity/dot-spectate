@@ -1,10 +1,10 @@
-# dot-spectate
+# GameSpice Spectate
 
 Who is watching whom, what the server lets them watch, and where the camera is: the genre's seven observer modes, a force-camera policy, a death-cam / freeze-cam / hand-over chain, and a broadcast delay. It computes a transform and never touches a camera.
 
 Read the family [CLAUDE.md](../../CLAUDE.md) first.
 
-**The distributable is `addons/dot_spectate/`.** It requires [dot-core](../dot-core) and nothing else (`ln -s ../../dot-core/addons/dot_core addons/dot_core`, gitignored). dot-team's `DotTeamSpectate` drives a `DotSpectatorManager` without naming it.
+**The distributable is `addons/dot_spectate/`.** It requires [GameSpice Core](../dot-core) and nothing else (`ln -s ../../dot-core/addons/dot_core addons/dot_core`, gitignored). dot-team's `DotTeamSpectate` drives a `DotSpectatorManager` without naming it.
 
 ## Read before
 
@@ -35,7 +35,7 @@ The family's two steps ([family CLAUDE.md](../../CLAUDE.md#validating-anything))
 
 - The policy and the delay are decided on the server, never by the viewing client. [design](docs/design.md#spectating-is-a-competitive-integrity-system-before-it-is-a-camera)
 - Return a transform; never touch a camera node. [design](docs/design.md#it-computes-a-transform-and-never-touches-a-camera)
-- Set `camera_world` (and `camera_mask` to the level's layers) on any client that draws a 3D spectator camera: chase and death cameras are then pulled out of the level by one dot-core `DotCameraProbe` per viewer. Without it a death against a wall is a frame of the wall. [design](docs/design.md#chase-and-death-cameras-stay-out-of-the-level)
+- Set `camera_world` (and `camera_mask` to the level's layers) on any client that draws a 3D spectator camera: chase and death cameras are then pulled out of the level by one GameSpice Core `DotCameraProbe` per viewer. Without it a death against a wall is a frame of the wall. [design](docs/design.md#chase-and-death-cameras-stay-out-of-the-level)
 - Keep the seven modes and the `force_camera` numbering; "own team" forces first person, and `_permitted_mode()` downgrades and logs rather than refuses. [design](docs/design.md#the-genres-seven-modes-and-its-numbering)
 - The history ring is bounded and validated against the delay; `sample` reports not-found rather than an identity transform. [design](docs/design.md#the-delay-is-why-there-is-a-history-at-all)
 - The chain always hands over, falling back to a fixed camera; the retarget sweep leaves timed cameras alone. Assert the target, not only the mode. [design](docs/design.md#the-death-cam-chain-hands-over)

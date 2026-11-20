@@ -19,14 +19,14 @@ extends Node
 ## camera.global_transform = spectate.camera_of("ada")
 ## [/codeblock]
 ##
-## [b]It computes a transform and never touches a camera.[/b] Same rule as dot-ui's "no
+## [b]It computes a transform and never touches a camera.[/b] Same rule as GameSpice UI's "no
 ## art": a [Camera3D] belongs to the game's rig, a 2D game has a [Camera2D], and a
 ## replay viewer has neither. [method camera_of] returns a [Transform3D];
 ## [method camera_2d_of] returns a position and an angle for a game on the XZ plane.
 ##
 ## [b]It does read the level, when asked to.[/b] With [member camera_world] set, the two
 ## modes whose camera is somewhere nobody stands (behind a target, above a body) are pulled
-## in front of whatever is between them and their pivot, through dot-core's
+## in front of whatever is between them and their pivot, through GameSpice Core's
 ## [DotCameraProbe]: one per viewer, so two viewers asked for in one frame do not ease each
 ## other's cameras. Without it the death camera of somebody killed against a wall was a
 ## frame of that wall (the first play test, 2026-10-11).

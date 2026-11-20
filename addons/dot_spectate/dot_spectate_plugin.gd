@@ -1,7 +1,7 @@
 @tool
 extends EditorPlugin
 
-## Editor entry point for dot-spectate. Registers inspector types only.
+## Editor entry point for GameSpice Spectate. Registers inspector types only.
 ##
 ## No autoloads: a server deciding who may watch whom and a client mirroring one view
 ## are two of these in one process.

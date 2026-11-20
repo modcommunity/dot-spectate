@@ -1,4 +1,4 @@
-# dot-spectate history
+# GameSpice Spectate history
 
 Kept because each could come back. The live rules are in [design.md](design.md).
 

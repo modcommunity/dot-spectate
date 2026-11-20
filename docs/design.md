@@ -1,4 +1,4 @@
-# dot-spectate design
+# GameSpice Spectate design
 
 Why the addon is shaped the way it is, and why the obvious alternative is wrong at each point. The rules are one line each in [CLAUDE.md](../CLAUDE.md).
 
@@ -14,7 +14,7 @@ The two features that matter are the force-camera policy and the delay, and both
 
 ## It computes a transform and never touches a camera
 
-`camera_of(key)` returns a `Transform3D`. `camera_2d_of(key)` returns a position and an angle for a game on the XZ plane. A game assigns it to its own rig. Same rule as dot-ui's "ships no art", and it is what lets one manager serve a 3D shooter's `Camera3D`, a 2D arena's `Camera2D` and a headless suite with no camera at all: three deployment shapes, no second code path.
+`camera_of(key)` returns a `Transform3D`. `camera_2d_of(key)` returns a position and an angle for a game on the XZ plane. A game assigns it to its own rig. Same rule as GameSpice UI's "ships no art", and it is what lets one manager serve a 3D shooter's `Camera3D`, a 2D arena's `Camera2D` and a headless suite with no camera at all: three deployment shapes, no second code path.
 
 ## The genre's seven modes, and its numbering
 
@@ -64,9 +64,9 @@ It carries the three behaviours the games had grown separately: `advance_client`
 
 - **No camera node, no smoothing, no field-of-view.** (The probe above eases only to stay out of a wall.) A game's rig owns those, and a spectator camera that lerps is a spectator camera fighting the game's own lerp.
 - **No free-camera key bindings.** What the keys are is the game's business; `DotSpectatorFreeCam` takes the numbers (move vector, look delta, fast/slow) and returns the transform, and `DotSpectatorManager.toggle_roam()` is the one key that enters and leaves.
-- **No demo recording.** dot-timer already has a replay format and a recorder; a second one here would be a second format.
-- **No overview map or player list.** dot-ui, and the list comes from `targets_for()`.
-- **No spectator chat channel.** dot-chat has scopes and a `membership_fn`; a "dead chat" channel is four lines there and would be a duplicate rule here.
+- **No demo recording.** GameSpice Timer already has a replay format and a recorder; a second one here would be a second format.
+- **No overview map or player list.** GameSpice UI, and the list comes from `targets_for()`.
+- **No spectator chat channel.** GameSpice Chat has scopes and a `membership_fn`; a "dead chat" channel is four lines there and would be a duplicate rule here.
 
 ## Free roam is on by default, and a restricted camera switches it off
 
