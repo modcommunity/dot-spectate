@@ -1,4 +1,4 @@
-[![Spectate - GameSpice addon](docs/banner.png)](https://moddingcommunity.com/a/252-dot-spectate)
+[![Spectate - GameSpice addon](docs/banner.png)](https://moddingcommunity.com/a/41-gs-spectate)
 
 Decides who a player may watch, which camera they get and where it goes, for when they die or have not joined a side. It gives you a `Transform3D` (or a 2D position and angle); your game puts its camera there.
 
