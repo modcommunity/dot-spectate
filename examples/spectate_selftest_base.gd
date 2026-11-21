@@ -89,6 +89,13 @@ func _test_rules() -> void:
 	_check(free.position.is_equal_approx(before + Vector3(0, 0, -12.0)), "forward is -Z at the default speed")
 	var _fast := free.step(Vector3(0, 0, 1), true, false, 1.0)
 	_check(is_equal_approx(before.z - free.position.z, 12.0 + 36.0), "and the fast key triples it")
+	var tuned := DotSpectatorRules.new()
+	tuned.roam_speed = 20.0
+	free.rules = tuned
+	free.position = Vector3.ZERO
+	var _slow := free.step(Vector3(0, 0, 1), false, true, 1.0)
+	_check(is_equal_approx(free.position.z, -20.0 * tuned.roam_slow_scale), "the forwarder reads speeds from the rules, not the camera config defaults")
+	_check(free.transform().origin == free.position and free.basis() == free.transform().basis, "transform and basis agree with the forwarded pose")
 
 	rules.allow_roaming = true
 	rules.delay_ticks = 200

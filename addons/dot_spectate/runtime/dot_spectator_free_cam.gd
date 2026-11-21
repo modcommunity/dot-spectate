@@ -1,7 +1,9 @@
 class_name DotSpectatorFreeCam
 extends RefCounted
 
-## The controls of a roaming camera: yaw, pitch and a position, moved by a game's own input.
+## The controls of a roaming camera, forwarding to GameSpice Camera's [DotCameraFreeLook].
+##
+## The arithmetic moved there so a spectator's roam, a flythrough and a debug camera share it; this class keeps the spectator names and takes its speeds from [DotSpectatorRules].
 ##
 ## [b]Here and not in the manager because the manager computes a transform and reads no
 ## input[/b] ([code]docs/design.md[/code]). Every game has a different input sampler and
@@ -27,52 +29,48 @@ extends RefCounted
 ## Where the speeds come from. Optional: without it the defaults of a fresh rules object.
 var rules: DotSpectatorRules = null
 
-var position: Vector3 = Vector3.ZERO
+## Short of 90 degrees; see [constant DotCameraFreeLook.MAX_PITCH].
+const MAX_PITCH := DotCameraFreeLook.MAX_PITCH
+
+var _look := DotCameraFreeLook.new()
+var _cfg := DotCameraConfig.new()
+
+var position: Vector3:
+	get: return _look.position
+	set(v): _look.position = v
 
 ## Radians. Yaw turns left for positive, as [method Basis.from_euler] does.
-var yaw: float = 0.0
-var pitch: float = 0.0
+var yaw: float:
+	get: return _look.yaw
+	set(v): _look.yaw = v
 
-## Short of 90 degrees: at exactly straight up the forward vector and the up vector are
-## parallel and a basis built from them is garbage, which draws as the world vanishing.
-const MAX_PITCH := deg_to_rad(89.0)
+var pitch: float:
+	get: return _look.pitch
+	set(v): _look.pitch = v
 
 
 ## Start from an existing camera, so a roam begins where the spectator already was.
 func seed_from(t: Transform3D) -> void:
-	position = t.origin
-	var euler := t.basis.orthonormalized().get_euler(EULER_ORDER_YXZ)
-	yaw = euler.y
-	pitch = clampf(euler.x, -MAX_PITCH, MAX_PITCH)
+	_look.seed_from(t)
 
 
 ## Turn by [param delta_angles] radians: x is yaw, y is pitch (up positive).
 func look(delta_angles: Vector2) -> void:
-	yaw = wrapf(yaw + delta_angles.x, -PI, PI)
-	pitch = clampf(pitch + delta_angles.y, -MAX_PITCH, MAX_PITCH)
+	_look.look(delta_angles)
 
 
 func basis() -> Basis:
-	return Basis.from_euler(Vector3(pitch, yaw, 0.0), EULER_ORDER_YXZ)
+	return _look.get_basis()
 
 
 func transform() -> Transform3D:
-	return Transform3D(basis(), position)
+	return _look.get_transform()
 
 
-## Fly for [param delta] seconds. [param move] is x right, y up (world up, so looking down
-## and pressing up does not dive), z forward along the view; each in -1..1.
+## Fly for [param delta] seconds. [param move] is x right, y up (world up), z forward along the view; each in -1..1.
 func step(move: Vector3, fast: bool, slow: bool, delta: float) -> Transform3D:
 	var r := rules if rules != null else DotSpectatorRules.new()
-	var speed := r.roam_speed
-	if fast:
-		speed *= r.roam_fast_scale
-	elif slow:
-		speed *= r.roam_slow_scale
-	var b := basis()
-	# Forward is -Z in Godot.
-	var wish := b.x * move.x + Vector3.UP * move.y + (-b.z) * move.z
-	if wish.length_squared() > 1.0:
-		wish = wish.normalized()
-	position += wish * speed * delta
-	return transform()
+	_cfg.free_speed = r.roam_speed
+	_cfg.free_fast_scale = r.roam_fast_scale
+	_cfg.free_slow_scale = r.roam_slow_scale
+	return _look.step(_cfg, move, fast, slow, delta)

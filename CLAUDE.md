@@ -4,7 +4,7 @@ Who is watching whom, what the server lets them watch, and where the camera is: 
 
 Read the family [CLAUDE.md](../../CLAUDE.md) first.
 
-**The distributable is `addons/dot_spectate/`.** It requires [GameSpice Core](../dot-core) and nothing else (`ln -s ../../dot-core/addons/dot_core addons/dot_core`, gitignored). dot-team's `DotTeamSpectate` drives a `DotSpectatorManager` without naming it.
+**The distributable is `addons/dot_spectate/`.** It requires [GameSpice Core](../dot-core) and [GameSpice Camera](../dot-camera) (`ln -s ../../dot-camera/addons/dot_camera addons/dot_camera`, gitignored; only `DotSpectatorFreeCam` names it, as a forwarder to `DotCameraFreeLook`; copy `addons/dot_camera` next to `addons/dot_core`). dot-team's `DotTeamSpectate` drives a `DotSpectatorManager` without naming it.
 
 ## Read before
 

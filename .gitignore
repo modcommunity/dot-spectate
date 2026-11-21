@@ -6,6 +6,7 @@
 #   ln -s ../../dot-core/addons/dot_core addons/dot_core
 # Consumers copy both addons into their own project.
 /addons/dot_core
+/addons/dot_camera
 
 # Exports
 build/
